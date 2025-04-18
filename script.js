@@ -1,6 +1,15 @@
 // Глобальная переменная для хранения экземпляра базы данных
 let db = null;
 
+// Инициализация элементов DOM
+const elements = {
+    menuContainer: document.getElementById('menu-container'),
+    progressModal: document.createElement("div"),
+    progressBar: document.createElement("div"),
+    progressText: document.createElement("div"),
+    progressTitle: document.createElement("div")
+};
+
 // Функция для сохранения изображения
 async function saveImage(imageFile) {
     return new Promise((resolve, reject) => {
@@ -398,10 +407,12 @@ elements.progressModal.innerHTML = `
         <div class="progress-text">0%</div>
     </div>
 `;
-document.body.appendChild(elements.progressModal);
-elements.progressBar = elements.progressModal.querySelector('.progress-bar');
-elements.progressText = elements.progressModal.querySelector('.progress-text');
-elements.progressTitle = elements.progressModal.querySelector('#progress-title');
+if (document.body) {
+    document.body.appendChild(elements.progressModal);
+    elements.progressBar = elements.progressModal.querySelector('.progress-bar');
+    elements.progressText = elements.progressModal.querySelector('.progress-text');
+    elements.progressTitle = elements.progressModal.querySelector('#progress-title');
+}
 
 // Функции для работы с прогресс-баром
 function showProgress(title = "Обработка...") {
@@ -466,11 +477,9 @@ function renderNavTabs() {
             }
             li.scrollIntoView({
                 behavior: 'smooth',
-                block: 'nearest',
-                inline: 'center'
+                block: 'nearest'
             });
         };
-        if (i === 0) li.className = "active";
         elements.navTabs.appendChild(li);
     });
 }
@@ -613,6 +622,10 @@ async function showItemDetails(item) {
 // Рендер всего меню
 async function renderMenu() {
     renderNavTabs();
+    if (!elements.menuContainer) {
+        console.error('menuContainer не найден');
+        return;
+    }
     elements.menuContainer.innerHTML = "";
     if (!appData.categories || appData.categories.length === 0) {
         elements.menuContainer.innerHTML = "<p>Нет категорий для отображения</p>";
@@ -620,7 +633,9 @@ async function renderMenu() {
     }
     for (const cat of appData.categories) {
         const section = await generateSection(cat);
-        if (section) elements.menuContainer.appendChild(section);
+        if (section && elements.menuContainer) {
+            elements.menuContainer.appendChild(section);
+        }
     }
     if (appData.categories[0] && document.getElementById(appData.categories[0].id)) {
         document.getElementById(appData.categories[0].id).className = "menu-section active";
