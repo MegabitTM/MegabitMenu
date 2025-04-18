@@ -213,8 +213,8 @@ async function saveData() {
 // Функция загрузки данных
 async function loadData() {
     try {
-        // Загружаем данные с сервера
-        const response = await fetch('load_data.php');
+        // Загружаем данные напрямую из data.json
+        const response = await fetch('data.json');
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
@@ -230,23 +230,24 @@ async function loadData() {
             throw new Error('Missing required fields');
         }
         
-        // Преобразуем числовые значения
+        // Преобразуем числовые значения в строки
         function convertNumericValues(obj) {
+            if (typeof obj !== 'object' || obj === null) {
+                return obj;
+            }
+            
             if (Array.isArray(obj)) {
                 return obj.map(item => convertNumericValues(item));
-            } else if (obj && typeof obj === 'object') {
-                const result = {};
-                for (const key in obj) {
-                    if (obj.hasOwnProperty(key)) {
-                        const value = obj[key];
-                        if (key === 'price' && typeof value === 'string') {
-                            result[key] = parseFloat(value);
-                        } else {
-                            result[key] = convertNumericValues(value);
-                        }
+            }
+            
+            for (const key in obj) {
+                if (obj.hasOwnProperty(key)) {
+                    if (typeof obj[key] === 'number' && (key === 'id' || key === 'name')) {
+                        obj[key] = String(obj[key]);
+                    } else if (typeof obj[key] === 'object') {
+                        obj[key] = convertNumericValues(obj[key]);
                     }
                 }
-                return result;
             }
             return obj;
         }
@@ -258,30 +259,20 @@ async function loadData() {
         const db = await initDB();
         const transaction = db.transaction(['appData'], 'readwrite');
         const store = transaction.objectStore('appData');
+        
+        // Удаляем старые данные
         await store.clear();
         
-        // Сохраняем данные в IndexedDB
-        await store.put(convertedData, 'appData');
+        // Сохраняем новые данные
+        await store.put(convertedData, 'menuData');
         
-        // Обновляем appData
-        appData = convertedData;
+        // Обновляем данные в памяти
+        updateAppData(convertedData);
         
-        console.log('Data loaded successfully');
-        return true;
+        return convertedData;
     } catch (error) {
         console.error('Error loading data:', error);
-        // Пробуем загрузить данные из localStorage как резервный вариант
-        try {
-            const savedData = localStorage.getItem('appData');
-            if (savedData) {
-                appData = JSON.parse(savedData);
-                console.log('Data loaded from localStorage');
-                return true;
-            }
-        } catch (e) {
-            console.error('Error loading from localStorage:', e);
-        }
-        return false;
+        throw error;
     }
 }
 
