@@ -64,26 +64,61 @@ let appData = {
     }
 };
 
-// Инициализация IndexedDB
-function initIndexedDB() {
+// Функция для удаления существующей базы данных
+function deleteDatabase() {
     return new Promise((resolve, reject) => {
-        const request = indexedDB.open('MegabitMenuDB', 1);
+        const request = indexedDB.deleteDatabase('MegabitMenuDB');
         
         request.onerror = function(event) {
-            console.error('Ошибка при открытии базы данных:', event.target.error);
-            reject('Ошибка при открытии базы данных');
+            console.error('Ошибка при удалении базы данных:', event.target.error);
+            reject('Ошибка при удалении базы данных');
         };
         
-        request.onupgradeneeded = function(event) {
-            const db = event.target.result;
+        request.onsuccess = function() {
+            console.log('База данных успешно удалена');
+            resolve();
+        };
+    });
+}
+
+// Инициализация IndexedDB
+async function initIndexedDB() {
+    try {
+        // Сначала удаляем существующую базу данных
+        await deleteDatabase();
+        
+        return new Promise((resolve, reject) => {
+            const request = indexedDB.open('MegabitMenuDB', 1);
             
-            // Создаем хранилище для данных меню
-            if (!db.objectStoreNames.contains('menuData')) {
+            request.onerror = function(event) {
+                console.error('Ошибка при открытии базы данных:', event.target.error);
+                reject('Ошибка при открытии базы данных');
+            };
+            
+            request.onupgradeneeded = function(event) {
+                const db = event.target.result;
+                
+                // Создаем хранилище для данных меню
                 const menuStore = db.createObjectStore('menuData', { keyPath: 'id' });
-                // Создаем индекс для быстрого поиска
                 menuStore.createIndex('current', 'id', { unique: true });
-            }
+                
+                // Создаем хранилище для изображений
+                db.createObjectStore('images', { keyPath: 'id' });
+                
+                // Создаем хранилище для заказов
+                db.createObjectStore('orders', { keyPath: 'id', autoIncrement: true });
+                
+                // Создаем хранилище для настроек
+                db.createObjectStore('settings', { keyPath: 'id' });
+            };
             
+            request.onsuccess = function(event) {
+                const db = event.target.result;
+                resolve(db);
+            };
+        });
+    } catch (error) {
+        console.error('Ошибка при инициализации базы данных:', error);
             // Создаем хранилище для изображений
             if (!db.objectStoreNames.contains('images')) {
                 db.createObjectStore('images', { keyPath: 'id' });
