@@ -196,7 +196,7 @@ async function initIndexedDB() {
         // Сначала удаляем существующую базу данных
         await deleteDatabase();
         
-        return new Promise((resolve, reject) => {
+    return new Promise((resolve, reject) => {
             const request = indexedDB.open('MegabitMenuDB', 1);
             
             request.onerror = function(event) {
@@ -247,7 +247,7 @@ const getMenuData = async () => {
     
     return new Promise((resolve, reject) => {
         request.onsuccess = () => resolve(request.result[0]);
-        request.onerror = () => reject(request.error);
+            request.onerror = () => reject(request.error);
     });
 };
 
@@ -392,7 +392,7 @@ async function loadData() {
                 const data = event.target.result;
                 if (data) {
                     resolve(data.data);
-                } else {
+                        } else {
                     // Если в IndexedDB нет данных, загружаем из data.json
                     fetch('data.json')
                         .then(response => {
@@ -1064,7 +1064,7 @@ async function uploadLogo(file) {
 
         // Обновляем отображение логотипа
         updateHeaderLogo();
-
+        
         return imageKey;
     } catch (error) {
         console.error('Error uploading logo:', error);
@@ -1117,7 +1117,7 @@ async function uploadHeaderBackground(file) {
 
         // Обновляем отображение
         updateHeaderLogo();
-
+        
         // Показываем уведомление об успешной загрузке
         alert('Фон шапки успешно загружен!');
     } catch (error) {
@@ -1278,10 +1278,10 @@ async function updateHeaderLogo() {
     // Обновляем логотип
     const logoDiv = document.getElementById("header-logo");
     if (logoDiv) {
-        if (appData.settings.headerLogo) {
+    if (appData.settings.headerLogo) {
             const logoSrc = await getImagePath(appData.settings.headerLogo);
             logoDiv.innerHTML = `<img src="${logoSrc}" alt="Logo" style="height: ${appData.settings.logoSize || 50}px;">`;
-        } else {
+    } else {
             logoDiv.innerHTML = `<h1>MegabitMenu</h1>`;
         }
     }
@@ -1579,7 +1579,7 @@ async function addCategory(catName) {
         alert('Пожалуйста, введите название категории');
         return;
     }
-
+    
     const id = 'cat_' + Date.now();
     const newCategory = {
         id: id,
@@ -1710,8 +1710,8 @@ elements.editForm.onsubmit = async (event) => {
                 request.onerror = (event) => {
                     console.error('Ошибка при сохранении изображения:', event.target.error);
                     reject(event.target.error);
-                };
-            });
+    };
+});
 
             // Сохраняем блюдо
             await saveDish(fileName);
