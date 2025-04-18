@@ -24,55 +24,72 @@ let appData = {
 };
 
 // Инициализация IndexedDB
+const dbName = 'MegabitMenuDB';
+const dbVersion = 1;
 let db;
-const DB_NAME = 'RestaurantMenuDB';
-const DB_VERSION = 1;
-const STORE_NAME = 'appData';
 
-async function initDB() {
+const initDB = () => {
     return new Promise((resolve, reject) => {
-        // Удаляем старую базу данных
-        const deleteRequest = indexedDB.deleteDatabase(DB_NAME);
+        const request = indexedDB.open(dbName, dbVersion);
         
-        deleteRequest.onsuccess = () => {
-            // Создаем новую базу данных
-            const request = indexedDB.open(DB_NAME, DB_VERSION);
-            
-            request.onerror = () => reject(request.error);
-            
-            request.onupgradeneeded = (event) => {
-                const db = event.target.result;
-            if (!db.objectStoreNames.contains(STORE_NAME)) {
-                    db.createObjectStore(STORE_NAME);
-                }
-            };
-            
-            request.onsuccess = () => {
-                db = request.result;
-                resolve(db);
-            };
+        request.onerror = (event) => {
+            console.error('Ошибка открытия базы данных:', event.target.error);
+            reject(event.target.error);
         };
         
-        deleteRequest.onerror = () => {
-            // Если не удалось удалить, пробуем просто открыть
-            const request = indexedDB.open(DB_NAME, DB_VERSION);
-            
-            request.onerror = () => reject(request.error);
-            
-            request.onupgradeneeded = (event) => {
-                const db = event.target.result;
-                if (!db.objectStoreNames.contains(STORE_NAME)) {
-                    db.createObjectStore(STORE_NAME);
-                }
-            };
-            
-            request.onsuccess = () => {
-                db = request.result;
-                resolve(db);
-            };
+        request.onsuccess = (event) => {
+            db = event.target.result;
+            resolve(db);
+        };
+        
+        request.onupgradeneeded = (event) => {
+            const db = event.target.result;
+            if (!db.objectStoreNames.contains('menu')) {
+                db.createObjectStore('menu', { keyPath: 'id', autoIncrement: true });
+            }
+            if (!db.objectStoreNames.contains('orders')) {
+                db.createObjectStore('orders', { keyPath: 'id', autoIncrement: true });
+            }
         };
     });
-}
+};
+
+// Функции для работы с меню
+const saveMenuData = async (data) => {
+    const transaction = db.transaction(['menu'], 'readwrite');
+    const store = transaction.objectStore('menu');
+    await store.clear();
+    await store.add(data);
+};
+
+const getMenuData = async () => {
+    const transaction = db.transaction(['menu'], 'readonly');
+    const store = transaction.objectStore('menu');
+    const request = store.getAll();
+    
+    return new Promise((resolve, reject) => {
+        request.onsuccess = () => resolve(request.result[0]);
+        request.onerror = () => reject(request.error);
+    });
+};
+
+// Функции для работы с заказами
+const saveOrder = async (order) => {
+    const transaction = db.transaction(['orders'], 'readwrite');
+    const store = transaction.objectStore('orders');
+    return store.add(order);
+};
+
+const getOrders = async () => {
+    const transaction = db.transaction(['orders'], 'readonly');
+    const store = transaction.objectStore('orders');
+    const request = store.getAll();
+    
+    return new Promise((resolve, reject) => {
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+    });
+};
 
 // Функция валидации данных
 function validateData(data) {
@@ -1924,3 +1941,12 @@ function hideConfirmOrderModal() {
         confirmOrderModal.style.display = 'none';
     }
 }
+
+// Экспорт функций для использования в других модулях
+window.MegabitMenu = {
+    saveMenuData,
+    getMenuData,
+    saveOrder,
+    getOrders,
+    saveImage
+};
