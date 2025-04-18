@@ -212,68 +212,79 @@ async function saveData() {
 
 // Функция загрузки данных
 async function loadData() {
-    try {
-        // Загружаем данные напрямую из data.json
-        const response = await fetch('data.json');
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        const data = await response.json();
-        
-        // Проверяем структуру данных
-        if (!data || typeof data !== 'object') {
-            throw new Error('Invalid data structure');
-        }
-        
-        // Проверяем обязательные поля
-        if (!data.settings || !data.categories || !Array.isArray(data.categories)) {
-            throw new Error('Missing required fields');
-        }
-        
-        // Преобразуем числовые значения в строки
-        function convertNumericValues(obj) {
-            if (typeof obj !== 'object' || obj === null) {
-                return obj;
-            }
-            
-            if (Array.isArray(obj)) {
-                return obj.map(item => convertNumericValues(item));
-            }
-            
-            for (const key in obj) {
-                if (obj.hasOwnProperty(key)) {
-                    if (typeof obj[key] === 'number' && (key === 'id' || key === 'name')) {
-                        obj[key] = String(obj[key]);
-                    } else if (typeof obj[key] === 'object') {
-                        obj[key] = convertNumericValues(obj[key]);
+    return new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open('GET', 'data.json', true);
+        xhr.onload = function() {
+            if (xhr.status === 200) {
+                try {
+                    const data = JSON.parse(xhr.responseText);
+                    
+                    // Проверяем структуру данных
+                    if (!data || typeof data !== 'object') {
+                        throw new Error('Invalid data structure');
                     }
+                    
+                    // Проверяем обязательные поля
+                    if (!data.settings || !data.categories || !Array.isArray(data.categories)) {
+                        throw new Error('Missing required fields');
+                    }
+                    
+                    // Преобразуем числовые значения в строки
+                    function convertNumericValues(obj) {
+                        if (typeof obj !== 'object' || obj === null) {
+                            return obj;
+                        }
+                        
+                        if (Array.isArray(obj)) {
+                            return obj.map(item => convertNumericValues(item));
+                        }
+                        
+                        for (const key in obj) {
+                            if (obj.hasOwnProperty(key)) {
+                                if (typeof obj[key] === 'number' && (key === 'id' || key === 'name')) {
+                                    obj[key] = String(obj[key]);
+                                } else if (typeof obj[key] === 'object') {
+                                    obj[key] = convertNumericValues(obj[key]);
+                                }
+                            }
+                        }
+                        return obj;
+                    }
+                    
+                    // Применяем преобразование
+                    const convertedData = convertNumericValues(data);
+                    
+                    // Очищаем IndexedDB перед сохранением новых данных
+                    initDB().then(db => {
+                        const transaction = db.transaction(['appData'], 'readwrite');
+                        const store = transaction.objectStore('appData');
+                        
+                        // Удаляем старые данные
+                        store.clear();
+                        
+                        // Сохраняем новые данные
+                        store.put(convertedData, 'menuData');
+                        
+                        // Обновляем данные в памяти
+                        updateAppData(convertedData);
+                        
+                        resolve(convertedData);
+                    }).catch(error => {
+                        reject(error);
+                    });
+                } catch (error) {
+                    reject(error);
                 }
+            } else {
+                reject(new Error(`HTTP error! status: ${xhr.status}`));
             }
-            return obj;
-        }
-        
-        // Применяем преобразование
-        const convertedData = convertNumericValues(data);
-        
-        // Очищаем IndexedDB перед сохранением новых данных
-        const db = await initDB();
-        const transaction = db.transaction(['appData'], 'readwrite');
-        const store = transaction.objectStore('appData');
-        
-        // Удаляем старые данные
-        await store.clear();
-        
-        // Сохраняем новые данные
-        await store.put(convertedData, 'menuData');
-        
-        // Обновляем данные в памяти
-        updateAppData(convertedData);
-        
-        return convertedData;
-    } catch (error) {
-        console.error('Error loading data:', error);
-        throw error;
-    }
+        };
+        xhr.onerror = function() {
+            reject(new Error('Network error'));
+        };
+        xhr.send();
+    });
 }
 
 // Функция для обновления данных с автоматическим сохранением
