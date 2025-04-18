@@ -232,139 +232,77 @@
 
         async function loadOrders() {
             try {
-                const response = await fetch('get_orders.php');
+                const response = await fetch('orders.json');
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
                 const data = await response.json();
                 if (!Array.isArray(data)) {
-                    throw new Error('Полученные данные не являются массивом');
+                    throw new Error('Invalid data format');
                 }
-
-                // Проверяем наличие новых заказов
-                const today = new Date();
-                const todayOrders = data.filter(order => {
-                    const orderDate = new Date(order.timestamp * 1000);
-                    return orderDate.toDateString() === today.toDateString();
-                });
-                
-                // Проверяем, есть ли новые заказы
-                let hasNewOrders = false;
-                
-                // Если это первая загрузка, инициализируем множество ID заказов
-                if (previousOrderIds.size === 0) {
-                    todayOrders.forEach(order => {
-                        previousOrderIds.add(order.id);
-                    });
-                } 
-                // Иначе проверяем, есть ли новые ID заказов
-                else {
-                    for (const order of todayOrders) {
-                        if (!previousOrderIds.has(order.id)) {
-                            hasNewOrders = true;
-                            break;
-                        }
-                    }
-                    
-                    // Обновляем множество ID заказов
-                    previousOrderIds.clear();
-                    todayOrders.forEach(order => {
-                        previousOrderIds.add(order.id);
-                    });
-                }
-                
-                // Если есть новые заказы и звук включен, воспроизводим уведомление
-                if (hasNewOrders && notificationEnabled) {
-                    playNotification();
-                }
-                
-                orders = data;
-                displayOrders();
-                updateActiveFilterButton();
+                return data;
             } catch (error) {
                 console.error('Ошибка при загрузке заказов:', error);
+                throw error;
             }
         }
 
         function displayOrders() {
-            const container = document.getElementById('orders-container');
-            container.innerHTML = '';
-            
-            const filteredOrders = currentFilter === 'all' 
-                ? orders 
-                : orders.filter(order => order.status === currentFilter);
+            const ordersContainer = document.getElementById('orders-container');
+            if (!ordersContainer) return;
 
-            // Фильтруем заказы только за сегодня
-            const today = new Date();
-            const todayOrders = filteredOrders.filter(order => {
-                const orderDate = new Date(order.timestamp * 1000);
-                return orderDate.toDateString() === today.toDateString();
-            }).sort((a, b) => a.timestamp - b.timestamp);
+            // Очищаем контейнер
+            ordersContainer.innerHTML = '';
 
-            todayOrders.forEach(order => {
-                const orderCard = createOrderCard(order);
-                if (orderCard) {
-                    container.appendChild(orderCard);
-                }
-            });
-        }
-
-        function createOrderCard(order) {
-            const col = document.createElement('div');
-            col.className = 'col-12 col-md-6 col-lg-4 mb-3';
-            
-            // Получаем дату заказа
-            const orderDate = new Date(order.timestamp * 1000);
-            const today = new Date();
-            
-            // Проверяем, является ли заказ сегодняшним
-            const isToday = orderDate.toDateString() === today.toDateString();
-            
-            // Если заказ не сегодняшний, пропускаем его
-            if (!isToday) {
-                return null;
+            // Фильтруем заказы по выбранному фильтру
+            let filteredOrders = orders;
+            if (currentFilter === 'today') {
+                const today = new Date();
+                filteredOrders = orders.filter(order => {
+                    const orderDate = new Date(order.timestamp * 1000);
+                    return orderDate.toDateString() === today.toDateString();
+                });
+            } else if (currentFilter === 'new') {
+                filteredOrders = orders.filter(order => !order.processed);
             }
-            
-            // Находим индекс заказа среди сегодняшних заказов
-            const todayOrders = orders.filter(o => {
-                const orderTime = new Date(o.timestamp * 1000);
-                return orderTime.toDateString() === today.toDateString();
-            }).sort((a, b) => a.timestamp - b.timestamp);
-            
-            const orderIndex = todayOrders.findIndex(o => o.id === order.id);
-            const orderNumber = orderIndex + 1;
-            
-            col.innerHTML = `
-                <div class="order-card p-3">
-                    <div class="d-flex justify-content-between align-items-center mb-2">
-                        <h5 class="mb-0">Заказ №${orderNumber}</h5>
-                        <span class="order-status status-${order.status}">${getStatusText(order.status)}</span>
+
+            // Сортируем заказы по времени (новые сверху)
+            filteredOrders.sort((a, b) => b.timestamp - a.timestamp);
+
+            // Отображаем заказы
+            filteredOrders.forEach(order => {
+                const orderElement = document.createElement('div');
+                orderElement.className = `order ${order.processed ? 'processed' : ''}`;
+                orderElement.innerHTML = `
+                    <div class="order-header">
+                        <span class="order-id">Заказ #${order.id}</span>
+                        <span class="order-time">${new Date(order.timestamp * 1000).toLocaleString()}</span>
                     </div>
-                    <div class="order-items mb-2">
+                    <div class="order-items">
                         ${order.items.map(item => `
-                            <div class="d-flex justify-content-between">
-                                <span>${item.name}</span>
-                                <span>x${item.quantity}</span>
+                            <div class="order-item">
+                                <span class="item-name">${item.name}</span>
+                                <span class="item-quantity">x${item.quantity}</span>
+                                <span class="item-price">${item.price * item.quantity} TMT</span>
                             </div>
                         `).join('')}
                     </div>
+                    <div class="order-total">
+                        Итого: ${order.total} TMT
+                    </div>
                     ${order.comment ? `
                         <div class="order-comment">
-                            <small>${order.comment}</small>
+                            Комментарий: ${order.comment}
                         </div>
                     ` : ''}
-                    <div class="order-time mt-2">
-                        ${new Date(order.timestamp * 1000).toLocaleString()}
-                    </div>
-                    <div class="mt-3">
-                        <button class="btn btn-sm btn-primary me-2" onclick="updateOrderStatus('${order.id}', '${getNextStatus(order.status)}')">
-                            ${getNextStatusText(order.status)}
+                    <div class="order-actions">
+                        <button class="process-btn" onclick="processOrder(${order.id})">
+                            ${order.processed ? 'Отменить обработку' : 'Обработать'}
                         </button>
                     </div>
-                </div>
-            `;
-            
-            return col;
+                `;
+                ordersContainer.appendChild(orderElement);
+            });
         }
 
         function getStatusText(status) {
@@ -409,6 +347,38 @@
             } catch (error) {
                 console.error('Ошибка при обновлении статуса:', error);
                 alert('Ошибка при обновлении статуса заказа');
+            }
+        }
+
+        async function processOrder(orderId) {
+            try {
+                // Находим заказ
+                const orderIndex = orders.findIndex(order => order.id === orderId);
+                if (orderIndex === -1) {
+                    throw new Error('Заказ не найден');
+                }
+
+                // Обновляем статус заказа
+                orders[orderIndex].processed = !orders[orderIndex].processed;
+
+                // Сохраняем обновленные заказы
+                const response = await fetch('orders.json', {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(orders)
+                });
+
+                if (!response.ok) {
+                    throw new Error('Ошибка при сохранении заказов');
+                }
+
+                // Обновляем отображение
+                displayOrders();
+            } catch (error) {
+                console.error('Ошибка при обработке заказа:', error);
+                alert('Ошибка при обработке заказа: ' + error.message);
             }
         }
 
