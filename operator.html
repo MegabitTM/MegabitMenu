@@ -158,63 +158,42 @@
         let previousOrdersCount = 0;
         let notificationEnabled = false;
         let previousOrderIds = new Set();
+        let activeFilter = 'all';
 
-        // Функция для удаления существующей базы данных
-        function deleteDatabase() {
-            return new Promise((resolve, reject) => {
-                const request = indexedDB.deleteDatabase('MegabitMenuDB');
+        // Загрузка заказов
+        async function loadOrders() {
+            try {
+                // Инициализируем базу данных, если она еще не инициализирована
+                if (!db) {
+                    db = await initIndexedDB();
+                }
                 
-                request.onerror = function(event) {
-                    console.error('Ошибка при удалении базы данных:', event.target.error);
-                    reject('Ошибка при удалении базы данных');
-                };
+                const transaction = db.transaction(['orders'], 'readonly');
+                const store = transaction.objectStore('orders');
+                const request = store.getAll();
                 
                 request.onsuccess = function() {
-                    console.log('База данных успешно удалена');
-                    resolve();
-                };
-            });
-        }
+                    orders = request.result;
+                    // Обновляем отображение
+                    updateActiveFilterButton();
+                    displayOrders();
 
-        // Инициализация IndexedDB
-        async function initIndexedDB() {
-            try {
-                // Сначала удаляем существующую базу данных
-                await deleteDatabase();
+                    // Проверяем новые заказы
+                    const newOrderIds = new Set(orders.map(order => order.id));
+                    const hasNewOrders = Array.from(newOrderIds).some(id => !previousOrderIds.has(id));
+                    
+                    if (hasNewOrders) {
+                        playNotification();
+                    }
+                    
+                    previousOrderIds = newOrderIds;
+                };
                 
-                return new Promise((resolve, reject) => {
-                    const request = indexedDB.open('MegabitMenuDB', 1);
-                    
-                    request.onerror = function(event) {
-                        console.error('Ошибка при открытии базы данных:', event.target.error);
-                        reject('Ошибка при открытии базы данных');
-                    };
-                    
-                    request.onupgradeneeded = function(event) {
-                        const db = event.target.result;
-                        
-                        // Создаем хранилище для данных меню
-                        const menuStore = db.createObjectStore('menuData', { keyPath: 'id' });
-                        menuStore.createIndex('current', 'id', { unique: true });
-                        
-                        // Создаем хранилище для изображений
-                        db.createObjectStore('images', { keyPath: 'id' });
-                        
-                        // Создаем хранилище для заказов
-                        db.createObjectStore('orders', { keyPath: 'id', autoIncrement: true });
-                        
-                        // Создаем хранилище для настроек
-                        db.createObjectStore('settings', { keyPath: 'id' });
-                    };
-                    
-                    request.onsuccess = function(event) {
-                        const db = event.target.result;
-                        resolve(db);
-                    };
-                });
+                request.onerror = function() {
+                    console.error('Ошибка при загрузке заказов');
+                };
             } catch (error) {
                 console.error('Ошибка при инициализации базы данных:', error);
-                throw error;
             }
         }
 
@@ -240,89 +219,12 @@
 
         // Функция для обновления активной кнопки фильтра
         function updateActiveFilterButton() {
-            // Подсчитываем количество заказов для каждой категории
-            const today = new Date();
-            const orderCounts = {
-                'new': 0,
-                'preparing': 0,
-                'ready': 0,
-                'completed': 0,
-                'all': 0
-            };
-            
-            // Подсчитываем количество заказов для каждой категории
-            orders.forEach(order => {
-                const orderDate = new Date(order.timestamp * 1000);
-                if (orderDate.toDateString() === today.toDateString()) {
-                    orderCounts[order.status]++;
-                    orderCounts['all']++;
+            document.querySelectorAll('.filter-buttons button').forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.dataset.status === activeFilter) {
+                    btn.classList.add('active');
                 }
             });
-            
-            // Обновляем кнопки и добавляем лейблы с количеством
-            document.querySelectorAll('.filter-buttons button').forEach(button => {
-                const status = button.dataset.status;
-                
-                // Обновляем активное состояние
-                if (status === currentFilter) {
-                    button.classList.add('active');
-                } else {
-                    button.classList.remove('active');
-                }
-                
-                // Обновляем или добавляем лейбл с количеством
-                let badge = button.querySelector('.badge');
-                if (!badge) {
-                    badge = document.createElement('span');
-                    badge.className = 'badge bg-secondary ms-2';
-                    button.appendChild(badge);
-                }
-                
-                // Устанавливаем количество
-                badge.textContent = orderCounts[status];
-                
-                // Скрываем лейбл, если количество равно 0
-                if (orderCounts[status] === 0) {
-                    badge.style.display = 'none';
-                } else {
-                    badge.style.display = 'inline-block';
-                }
-            });
-        }
-
-        async function loadOrders() {
-            try {
-                // Инициализируем IndexedDB
-                if (!window.db) {
-                    window.db = await initIndexedDB();
-                }
-
-                // Загружаем заказы из IndexedDB
-                const transaction = window.db.transaction(['orders'], 'readonly');
-                const store = transaction.objectStore('orders');
-                const request = store.getAll();
-
-                orders = await new Promise((resolve, reject) => {
-                    request.onsuccess = () => resolve(request.result);
-                    request.onerror = () => reject(request.error);
-                });
-
-                // Обновляем отображение
-                updateActiveFilterButton();
-                displayOrders();
-
-                // Проверяем новые заказы
-                const newOrderIds = new Set(orders.map(order => order.id));
-                const hasNewOrders = Array.from(newOrderIds).some(id => !previousOrderIds.has(id));
-                
-                if (hasNewOrders) {
-                    playNotification();
-                }
-                
-                previousOrderIds = newOrderIds;
-            } catch (error) {
-                console.error('Ошибка при загрузке заказов:', error);
-            }
         }
 
         function displayOrders() {
@@ -334,8 +236,8 @@
 
             // Фильтруем заказы по выбранному фильтру
             let filteredOrders = orders;
-            if (currentFilter !== 'all') {
-                filteredOrders = orders.filter(order => order.status === currentFilter);
+            if (activeFilter !== 'all') {
+                filteredOrders = orders.filter(order => order.status === activeFilter);
             }
 
             // Сортируем заказы по времени (новые сверху)
@@ -438,32 +340,40 @@
             }
         }
 
-        async function processOrder(orderId) {
+        async function processOrder(orderId, newStatus) {
             try {
-                // Находим заказ
-                const orderIndex = orders.findIndex(order => order.id === orderId);
-                if (orderIndex === -1) {
-                    throw new Error('Заказ не найден');
+                if (!db) {
+                    db = await initIndexedDB();
                 }
 
-                // Обновляем статус заказа
-                orders[orderIndex].processed = !orders[orderIndex].processed;
+                const transaction = db.transaction(['orders'], 'readwrite');
+                const store = transaction.objectStore('orders');
+                const request = store.get(orderId);
 
-                // Сохраняем обновленные заказы
-                await saveOrders();
+                request.onsuccess = function() {
+                    const order = request.result;
+                    if (order) {
+                        order.status = newStatus;
+                        store.put(order);
+                    }
+                };
 
-                // Обновляем отображение
-                displayOrders();
+                transaction.oncomplete = function() {
+                    loadOrders(); // Перезагружаем список заказов
+                };
+
+                transaction.onerror = function() {
+                    console.error('Ошибка при обновлении статуса заказа');
+                };
             } catch (error) {
                 console.error('Ошибка при обработке заказа:', error);
-                alert('Ошибка при обработке заказа: ' + error.message);
             }
         }
 
         document.querySelectorAll('.filter-buttons button').forEach(button => {
             button.addEventListener('click', () => {
-                currentFilter = button.dataset.status;
-                localStorage.setItem('operatorFilter', currentFilter);
+                activeFilter = button.dataset.status;
+                localStorage.setItem('operatorFilter', activeFilter);
                 updateActiveFilterButton();
                 displayOrders();
             });
@@ -472,10 +382,9 @@
         // Загрузка заказов при загрузке страницы
         document.addEventListener('DOMContentLoaded', () => {
             loadOrders();
+            // Обновляем список заказов каждые 30 секунд
+            setInterval(loadOrders, 30000);
         });
-
-        // Автоматическое обновление каждые 5 секунд
-        setInterval(loadOrders, 5000);
     </script>
 </body>
 </html> 

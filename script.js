@@ -4,11 +4,111 @@ let db = null;
 // Инициализация элементов DOM
 const elements = {
     menuContainer: document.getElementById('menu-container'),
+    navTabs: document.getElementById("nav-tabs"),
+    cartButton: document.getElementById("cart-button"),
+    cartBadge: document.getElementById("cart-badge"),
+    cartModal: document.getElementById("cart-modal"),
+    cartItemsModal: document.getElementById("cart-items-modal"),
+    cartSummaryModal: document.getElementById("cart-summary-modal"),
+    clearCartBtn: document.getElementById("clear-cart-btn"),
+    editModal: document.getElementById("edit-modal"),
+    editForm: document.getElementById("edit-form"),
+    editName: document.getElementById("edit-name"),
+    editDescription: document.getElementById("edit-description"),
+    editPrice: document.getElementById("edit-price"),
+    editImgFile: document.getElementById("edit-img-file"),
+    editCategorySelect: document.getElementById("edit-category-select"),
+    editCategoryHidden: document.getElementById("edit-category"),
+    editIndex: document.getElementById("edit-index"),
+    stopListToggle: document.getElementById("stop-list-toggle"),
+    editModalTitle: document.getElementById("edit-modal-title"),
+    adminPanelModal: document.getElementById("admin-panel-modal"),
+    headerLogoDiv: document.getElementById("header-logo"),
+    adminNavButtons: document.querySelectorAll("#admin-nav button"),
+    adminSections: document.querySelectorAll(".admin-section"),
+    adminEditContent: document.getElementById("admin-edit-content"),
+    adminAddDishBtn: document.getElementById("admin-add-dish-btn"),
+    adminSettingsForm: document.getElementById("admin-settings-form"),
+    adminLogoFileInput: document.getElementById("admin-logo-file"),
+    adminLogoSizeInput: document.getElementById("admin-logo-size"),
+    adminHeaderBgColorInput: document.getElementById("admin-header-bg-color"),
+    adminHeaderBgImageInput: document.getElementById("admin-header-bg-image"),
+    adminServiceTipInput: document.getElementById("admin-service-tip"),
+    adminCategoriesSettingsDiv: document.getElementById("admin-categories-settings"),
+    adminAddCategoryBtn: document.getElementById("admin-add-category-btn"),
+    adminPasswordInput: document.getElementById("admin-password"),
+    themeToggleBtn: document.getElementById("theme-toggle"),
+    adminPasswordModal: document.getElementById("admin-password-modal"),
+    adminPasswordForm: document.getElementById("admin-password-form"),
+    adminPasswordInputModal: document.getElementById("admin-password-input"),
+    toggleAdminPassword: document.getElementById("toggle-admin-password"),
+    exportDataBtn: document.getElementById("export-data"),
+    importDataBtn: document.getElementById("import-data"),
+    importDataInput: document.getElementById("import-data-input"),
     progressModal: document.createElement("div"),
     progressBar: document.createElement("div"),
     progressText: document.createElement("div"),
     progressTitle: document.createElement("div")
 };
+
+// Инициализация прогресс-бара
+elements.progressModal.className = "modal progress-modal";
+elements.progressModal.innerHTML = `
+    <div class="modal-content">
+        <h3 id="progress-title">Обработка...</h3>
+        <div class="progress-container">
+            <div class="progress-bar"></div>
+        </div>
+        <div class="progress-text">0%</div>
+    </div>
+`;
+if (document.body) {
+    document.body.appendChild(elements.progressModal);
+    elements.progressBar = elements.progressModal.querySelector('.progress-bar');
+    elements.progressText = elements.progressModal.querySelector('.progress-text');
+    elements.progressTitle = elements.progressModal.querySelector('#progress-title');
+}
+
+// Функции для работы с прогресс-баром
+function showProgress(title = "Обработка...") {
+    elements.progressTitle.textContent = title;
+    elements.progressBar.style.width = "0%";
+    elements.progressText.textContent = "0%";
+    elements.progressModal.style.display = "block";
+}
+
+function updateProgress(percent, text = null) {
+    elements.progressBar.style.width = percent + "%";
+    elements.progressText.textContent = text || `${Math.round(percent)}%`;
+}
+
+function hideProgress() {
+    elements.progressModal.style.display = "none";
+}
+
+// Добавляем обработчики закрытия модальных окон по клику вне их области
+const modals = [
+    elements.cartModal,
+    elements.editModal,
+    elements.adminPanelModal,
+    elements.adminPasswordModal,
+    document.getElementById('confirm-order-modal') // Добавляем модальное окно подтверждения заказа
+];
+
+window.addEventListener('click', (event) => {
+    modals.forEach(modal => {
+        if (event.target === modal) {
+            modal.style.display = 'none';
+        }
+    });
+});
+
+// Предотвращаем закрытие модального окна при клике на его содержимое
+document.querySelectorAll('.modal-content').forEach(content => {
+    content.addEventListener('click', (event) => {
+        event.stopPropagation();
+    });
+});
 
 // Функция для сохранения изображения
 async function saveImage(imageFile) {
@@ -345,115 +445,6 @@ function updateAppData(newData) {
     // Сохраняем обновленные данные
     saveData();
 }
-
-// Ссылки на DOM-элементы
-const elements = {
-    menuContainer: document.getElementById("menu-container"),
-    navTabs: document.getElementById("nav-tabs"),
-    cartButton: document.getElementById("cart-button"),
-    cartBadge: document.getElementById("cart-badge"),
-    cartModal: document.getElementById("cart-modal"),
-    cartItemsModal: document.getElementById("cart-items-modal"),
-    cartSummaryModal: document.getElementById("cart-summary-modal"),
-    clearCartBtn: document.getElementById("clear-cart-btn"),
-    editModal: document.getElementById("edit-modal"),
-    editForm: document.getElementById("edit-form"),
-    editName: document.getElementById("edit-name"),
-    editDescription: document.getElementById("edit-description"),
-    editPrice: document.getElementById("edit-price"),
-    editImgFile: document.getElementById("edit-img-file"),
-    editCategorySelect: document.getElementById("edit-category-select"),
-    editCategoryHidden: document.getElementById("edit-category"),
-    editIndex: document.getElementById("edit-index"),
-    stopListToggle: document.getElementById("stop-list-toggle"),
-    editModalTitle: document.getElementById("edit-modal-title"),
-    adminPanelModal: document.getElementById("admin-panel-modal"),
-    headerLogoDiv: document.getElementById("header-logo"),
-    adminNavButtons: document.querySelectorAll("#admin-nav button"),
-    adminSections: document.querySelectorAll(".admin-section"),
-    adminEditContent: document.getElementById("admin-edit-content"),
-    adminAddDishBtn: document.getElementById("admin-add-dish-btn"),
-    adminSettingsForm: document.getElementById("admin-settings-form"),
-    adminLogoFileInput: document.getElementById("admin-logo-file"),
-    adminLogoSizeInput: document.getElementById("admin-logo-size"),
-    adminHeaderBgColorInput: document.getElementById("admin-header-bg-color"),
-    adminHeaderBgImageInput: document.getElementById("admin-header-bg-image"),
-    adminServiceTipInput: document.getElementById("admin-service-tip"),
-    adminCategoriesSettingsDiv: document.getElementById("admin-categories-settings"),
-    adminAddCategoryBtn: document.getElementById("admin-add-category-btn"),
-    adminPasswordInput: document.getElementById("admin-password"),
-    themeToggleBtn: document.getElementById("theme-toggle"),
-    adminPasswordModal: document.getElementById("admin-password-modal"),
-    adminPasswordForm: document.getElementById("admin-password-form"),
-    adminPasswordInputModal: document.getElementById("admin-password-input"),
-    toggleAdminPassword: document.getElementById("toggle-admin-password"),
-    exportDataBtn: document.getElementById("export-data"),
-    importDataBtn: document.getElementById("import-data"),
-    importDataInput: document.getElementById("import-data-input"),
-    progressModal: document.createElement("div"),
-    progressBar: document.createElement("div"),
-    progressText: document.createElement("div"),
-    progressTitle: document.createElement("div")
-};
-
-// Инициализация прогресс-бара
-elements.progressModal.className = "modal progress-modal";
-elements.progressModal.innerHTML = `
-    <div class="modal-content">
-        <h3 id="progress-title">Обработка...</h3>
-        <div class="progress-container">
-            <div class="progress-bar"></div>
-        </div>
-        <div class="progress-text">0%</div>
-    </div>
-`;
-if (document.body) {
-    document.body.appendChild(elements.progressModal);
-    elements.progressBar = elements.progressModal.querySelector('.progress-bar');
-    elements.progressText = elements.progressModal.querySelector('.progress-text');
-    elements.progressTitle = elements.progressModal.querySelector('#progress-title');
-}
-
-// Функции для работы с прогресс-баром
-function showProgress(title = "Обработка...") {
-    elements.progressTitle.textContent = title;
-    elements.progressBar.style.width = "0%";
-    elements.progressText.textContent = "0%";
-    elements.progressModal.style.display = "block";
-}
-
-function updateProgress(percent, text = null) {
-    elements.progressBar.style.width = percent + "%";
-    elements.progressText.textContent = text || `${Math.round(percent)}%`;
-}
-
-function hideProgress() {
-    elements.progressModal.style.display = "none";
-}
-
-// Добавляем обработчики закрытия модальных окон по клику вне их области
-const modals = [
-    elements.cartModal,
-    elements.editModal,
-    elements.adminPanelModal,
-    elements.adminPasswordModal,
-    document.getElementById('confirm-order-modal') // Добавляем модальное окно подтверждения заказа
-];
-
-window.addEventListener('click', (event) => {
-    modals.forEach(modal => {
-        if (event.target === modal) {
-            modal.style.display = 'none';
-        }
-    });
-});
-
-// Предотвращаем закрытие модального окна при клике на его содержимое
-document.querySelectorAll('.modal-content').forEach(content => {
-    content.addEventListener('click', (event) => {
-        event.stopPropagation();
-    });
-});
 
 // Функция рендеринга вкладок категорий
 function renderNavTabs() {
@@ -1698,341 +1689,38 @@ elements.editForm.onsubmit = async (event) => {
             const optimizedBlob = await optimizeImage(file, 800, 600, 0.8);
             
             // Формируем имя файла
-            const fileName = `dish_${Date.now()}.jpg`;
-            const filePath = `images/${fileName}`;
+            const fileName = `dish_${Date.now()}_${file.name}`;
             
-            // Загружаем на сервер
-            const formData = new FormData();
-            formData.append('file', optimizedBlob, fileName);
-            formData.append('path', filePath);
+            // Сохраняем изображение в IndexedDB
+            if (!db) {
+                db = await initIndexedDB();
+            }
+
+            const transaction = db.transaction(['images'], 'readwrite');
+            const store = transaction.objectStore('images');
             
-            const response = await fetch('upload.php', {
-                method: 'POST',
-                body: formData
+            await new Promise((resolve, reject) => {
+                const request = store.put(optimizedBlob, fileName);
+                
+                request.onsuccess = () => {
+                    console.log('Изображение успешно сохранено');
+                    resolve(fileName);
+                };
+                
+                request.onerror = (event) => {
+                    console.error('Ошибка при сохранении изображения:', event.target.error);
+                    reject(event.target.error);
+                };
             });
-            
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            
-            const data = await response.json();
-            
-            if (data.success) {
-                saveDish(data.path);
-            } else {
-                console.error('Ошибка загрузки файла:', data.error);
-                alert('Ошибка загрузки изображения: ' + data.error);
-            }
+
+            // Сохраняем блюдо
+            await saveDish(fileName);
         } catch (error) {
-            console.error('Ошибка обработки изображения:', error);
-            alert('Ошибка обработки изображения: ' + error.message);
+            console.error('Ошибка при сохранении блюда:', error);
+            alert('Ошибка при сохранении блюда: ' + error.message);
         }
     } else {
-        saveDish(null);
+        // Если изображение не выбрано, сохраняем блюдо без него
+        await saveDish(null);
     }
-};
-
-elements.headerLogoDiv.onclick = () => {
-    elements.adminPasswordModal.style.display = "block";
-};
-
-elements.adminNavButtons.forEach(btn => {
-    btn.onclick = function() {
-        elements.adminNavButtons.forEach(b => b.className = "admin-tab");
-        this.className = "admin-tab active";
-        const target = this.getAttribute("data-target");
-        elements.adminSections.forEach(sec => {
-            sec.className = "admin-section";
-            if (sec.id === target) sec.className = "admin-section active";
-        });
-        if (target === "admin-edit-section") renderAdminEditContent();
-    };
-});
-
-elements.adminAddDishBtn.onclick = () => {
-    openEditModal();
-};
-
-elements.adminSettingsForm.onsubmit = async (event) => {
-    event.preventDefault();
-
-    // Сохраняем текущие пути к изображениям
-    const currentLogo = appData.settings.headerLogo;
-    const currentBg = appData.settings.headerBgImage;
-
-    // Обновляем настройки
-    appData.settings.logoSize = Number(elements.adminLogoSizeInput.value);
-    appData.settings.headerBgColor = elements.adminHeaderBgColorInput.value;
-    appData.settings.serviceTip = Number(elements.adminServiceTipInput.value);
-
-    // Сохраняем пути к изображениям
-    appData.settings.headerLogo = currentLogo;
-    appData.settings.headerBgImage = currentBg;
-
-    const newPassword = elements.adminPasswordInput.value.trim();
-    if (newPassword !== "") {
-        appData.settings.adminPassword = String(newPassword);
-    }
-
-    const categoryItems = elements.adminCategoriesSettingsDiv.querySelectorAll(".category-item");
-    categoryItems.forEach(item => {
-        const catId = item.getAttribute("data-id");
-        const cat = appData.categories.find(c => c.id === catId);
-        if (cat) {
-            cat.tabBg = item.querySelector(".tab-bg").value;
-            cat.tabFont = item.querySelector(".tab-font").value;
-        }
-    });
-
-    await saveData();
-    elements.adminPanelModal.style.display = "none";
-};
-
-elements.adminAddCategoryBtn.addEventListener('click', function() {
-    const catName = prompt("Введите название категории:");
-    if (!catName) return;
-    
-    addCategory(catName);
-});
-
-elements.themeToggleBtn.onclick = toggleTheme;
-
-elements.toggleAdminPassword.onclick = () => {
-    elements.adminPasswordInputModal.type = elements.adminPasswordInputModal.type === "password" ? "text" : "password";
-    elements.toggleAdminPassword.textContent = elements.adminPasswordInputModal.type === "password" ? "👁️" : "👁️‍🗨️";
-};
-
-elements.adminPasswordForm.onsubmit = (event) => {
-    event.preventDefault();
-    const code = elements.adminPasswordInputModal.value.trim();
-    console.log('Введенный пароль:', code);
-    console.log('Текущий пароль в настройках:', appData.settings.adminPassword);
-    console.log('Тип введенного пароля:', typeof code);
-    console.log('Тип пароля в настройках:', typeof appData.settings.adminPassword);
-    
-    // Проверяем мастер-пароль
-    if (code === "masterkey") {
-        elements.adminPasswordModal.style.display = "none";
-        elements.adminPanelModal.style.display = "block";
-        renderAdminEditContent();
-        renderAdminSettingsForm();
-        return;
-    }
-    
-    // Проверяем обычный пароль
-    const enteredPassword = String(code);
-    const storedPassword = String(appData.settings.adminPassword);
-    
-    if (enteredPassword === storedPassword) {
-        elements.adminPasswordModal.style.display = "none";
-        elements.adminPanelModal.style.display = "block";
-        renderAdminEditContent();
-        renderAdminSettingsForm();
-    } else {
-        alert("Неверный пароль! Попробуйте снова.");
-    }
-};
-
-elements.exportDataBtn.onclick = exportData;
-
-elements.importDataBtn.onclick = () => {
-    elements.importDataInput.click();
-};
-
-elements.importDataInput.onchange = (event) => {
-    if (event.target.files && event.target.files[0]) {
-        if (confirm('Импорт данных заменит все текущие настройки и содержимое меню. Продолжить?')) {
-            importData(event.target.files[0]);
-        }
-        event.target.value = '';
-    }
-};
-
-// Функция для отправки заказа
-async function sendOrder() {
-    const cart = getCart();
-    if (!cart || cart.length === 0) {
-        alert('Корзина пуста');
-        return;
-    }
-
-    // Показываем модальное окно подтверждения
-    showConfirmOrderModal();
-}
-
-// Функция для отображения модального окна подтверждения заказа
-function showConfirmOrderModal() {
-    const modal = document.getElementById('confirm-order-modal');
-    const itemsContainer = document.getElementById('confirm-order-items');
-    const totalContainer = document.getElementById('confirm-order-total');
-    
-    // Закрываем корзину
-    const cartModal = document.getElementById('cart-modal');
-    if (cartModal) {
-        cartModal.style.display = 'none';
-    }
-    
-    // Очищаем контейнеры
-    itemsContainer.innerHTML = '';
-    totalContainer.innerHTML = '';
-    
-    // Получаем корзину
-    const cart = getCart();
-    if (!cart || cart.length === 0) {
-        alert('Корзина пуста');
-        return;
-    }
-    
-    // Отображаем товары
-    let total = 0;
-    cart.forEach((item, index) => {
-        const itemElement = document.createElement('div');
-        itemElement.className = 'confirm-order-item';
-        
-        const infoDiv = document.createElement('div');
-        infoDiv.className = 'item-info';
-        infoDiv.innerHTML = `
-            <span class="item-name">${item.name}</span>
-            <span class="item-price">${item.price} TMT</span>
-        `;
-        
-        const quantityDiv = document.createElement('div');
-        quantityDiv.className = 'quantity-controls';
-        
-        const minusBtn = document.createElement('button');
-        minusBtn.className = 'quantity-btn';
-        minusBtn.textContent = '-';
-        minusBtn.onclick = () => {
-            const updatedCart = getCart();
-            if (updatedCart[index].quantity > 1) {
-                updatedCart[index].quantity--;
-            } else {
-                updatedCart.splice(index, 1);
-            }
-            saveCart(updatedCart);
-            showConfirmOrderModal();
-            updateCartBadge();
-        };
-        
-        const quantitySpan = document.createElement('span');
-        quantitySpan.className = 'quantity';
-        quantitySpan.textContent = item.quantity;
-        
-        const plusBtn = document.createElement('button');
-        plusBtn.className = 'quantity-btn';
-        plusBtn.textContent = '+';
-        plusBtn.onclick = () => {
-            const updatedCart = getCart();
-            updatedCart[index].quantity++;
-            saveCart(updatedCart);
-            showConfirmOrderModal();
-            updateCartBadge();
-        };
-        
-        quantityDiv.appendChild(minusBtn);
-        quantityDiv.appendChild(quantitySpan);
-        quantityDiv.appendChild(plusBtn);
-        
-        itemElement.appendChild(infoDiv);
-        itemElement.appendChild(quantityDiv);
-        itemsContainer.appendChild(itemElement);
-        
-        total += item.price * item.quantity;
-    });
-    
-    // Отображаем общую сумму
-    totalContainer.innerHTML = `<div class="total">Итого: ${total.toFixed(2)} TMT</div>`;
-    
-    // Показываем модальное окно
-    modal.style.display = 'block';
-}
-
-function hideCartModal() {
-    const cartModal = document.getElementById('cart-modal');
-    if (cartModal) {
-        cartModal.style.display = 'none';
-    }
-}
-
-function updateConfirmOrderQuantity(itemId, change) {
-    const cart = getCart();
-    const itemIndex = cart.findIndex(item => item.id === itemId);
-    if (itemIndex !== -1) {
-        const newQuantity = cart[itemIndex].quantity + change;
-        if (newQuantity > 0) {
-            cart[itemIndex].quantity = newQuantity;
-            saveCart(cart);
-            showConfirmOrderModal();
-            updateCartBadge();
-        }
-    }
-}
-
-// Функция подтверждения заказа
-async function confirmOrder() {
-    try {
-        const cart = getCart();
-        if (!cart || cart.length === 0) {
-            alert('Корзина пуста');
-            return;
-        }
-
-        const comment = document.getElementById('order-comment').value;
-        const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-
-        const orderData = {
-            id: Date.now(),
-            items: cart,
-            total: total,
-            comment: comment,
-            timestamp: new Date().toISOString(),
-            status: 'new'
-        };
-
-        // Сохраняем заказ в IndexedDB
-        if (!db) {
-            db = await initIndexedDB();
-        }
-
-        const transaction = db.transaction(['orders'], 'readwrite');
-        const store = transaction.objectStore('orders');
-        
-        await new Promise((resolve, reject) => {
-            const request = store.add(orderData);
-            
-            request.onsuccess = () => {
-                console.log('Заказ успешно сохранен');
-                resolve();
-            };
-            
-            request.onerror = (event) => {
-                console.error('Ошибка при сохранении заказа:', event.target.error);
-                reject(event.target.error);
-            };
-        });
-
-        alert('Заказ успешно отправлен!');
-        clearCart();
-        hideConfirmOrderModal();
-        updateCartBadge();
-    } catch (error) {
-        console.error('Ошибка при отправке заказа:', error);
-        alert('Ошибка при отправке заказа: ' + error.message);
-    }
-}
-
-function hideConfirmOrderModal() {
-    const confirmOrderModal = document.getElementById('confirm-order-modal');
-    if (confirmOrderModal) {
-        confirmOrderModal.style.display = 'none';
-    }
-}
-
-// Экспорт функций для использования в других модулях
-window.MegabitMenu = {
-    saveMenuData,
-    getMenuData,
-    saveOrders,
-    getOrders,
-    saveImage
 };
