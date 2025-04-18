@@ -1,4 +1,7 @@
-// Функция для сохранения изображения в IndexedDB
+// Глобальная переменная для хранения экземпляра базы данных
+let db = null;
+
+// Функция для сохранения изображения
 async function saveImage(imageFile) {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
