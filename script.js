@@ -247,35 +247,17 @@ async function saveData() {
             };
         });
 
-        // Затем сохраняем на сервере
-        const response = await fetch('save_data.php', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(appData)
-        });
-
-        if (!response.ok) {
-            throw new Error('Ошибка при сохранении данных на сервере');
-        }
-
-        const result = await response.json();
-        if (!result.success) {
-            throw new Error(result.error || 'Ошибка при сохранении данных');
-        }
-
-        console.log('Данные успешно сохранены на сервере');
-        return true;
-    } catch (error) {
-        console.error('Error saving data:', error);
-        // В случае ошибки сохраняем в localStorage как резервную копию
+        // Сохраняем резервную копию в localStorage
         try {
             localStorage.setItem('appData', JSON.stringify(appData));
             console.log('Данные сохранены в localStorage как резервная копия');
         } catch (e) {
             console.error('Error saving to localStorage:', e);
         }
+
+        return true;
+    } catch (error) {
+        console.error('Error saving data:', error);
         throw error;
     }
 }
