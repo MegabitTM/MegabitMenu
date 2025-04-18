@@ -232,6 +232,13 @@
 
         async function loadOrders() {
             try {
+                // Загружаем заказы из localStorage
+                const savedOrders = localStorage.getItem('orders');
+                if (savedOrders) {
+                    return JSON.parse(savedOrders);
+                }
+
+                // Если в localStorage нет заказов, загружаем из orders.json
                 const response = await fetch('orders.json');
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
@@ -240,6 +247,10 @@
                 if (!Array.isArray(data)) {
                     throw new Error('Invalid data format');
                 }
+
+                // Сохраняем заказы в localStorage
+                localStorage.setItem('orders', JSON.stringify(data));
+
                 return data;
             } catch (error) {
                 console.error('Ошибка при загрузке заказов:', error);
@@ -350,6 +361,16 @@
             }
         }
 
+        async function saveOrders() {
+            try {
+                // Сохраняем заказы в localStorage
+                localStorage.setItem('orders', JSON.stringify(orders));
+            } catch (error) {
+                console.error('Ошибка при сохранении заказов:', error);
+                throw error;
+            }
+        }
+
         async function processOrder(orderId) {
             try {
                 // Находим заказ
@@ -362,17 +383,7 @@
                 orders[orderIndex].processed = !orders[orderIndex].processed;
 
                 // Сохраняем обновленные заказы
-                const response = await fetch('orders.json', {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(orders)
-                });
-
-                if (!response.ok) {
-                    throw new Error('Ошибка при сохранении заказов');
-                }
+                await saveOrders();
 
                 // Обновляем отображение
                 displayOrders();
