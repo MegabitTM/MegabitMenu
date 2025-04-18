@@ -8,6 +8,8 @@
     <link href="lib/bootstrap/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="lib/bootstrap-icons/font/bootstrap-icons.css">
     <link rel="stylesheet" href="style.css">
+    <script src="lib/bootstrap/js/bootstrap.bundle.min.js"></script>
+    <script src="script.js"></script>
     <style>
         .order-card {
             margin-bottom: 15px;
@@ -150,13 +152,72 @@
         <source src="assets/sounds/notification.mp3" type="audio/mpeg">
     </audio>
 
-    <script src="lib/bootstrap/js/bootstrap.bundle.min.js"></script>
     <script>
         let orders = [];
         let currentFilter = localStorage.getItem('operatorFilter') || 'new';
         let previousOrdersCount = 0;
         let notificationEnabled = false;
         let previousOrderIds = new Set();
+        let db = null;
+
+        // Функция для удаления существующей базы данных
+        function deleteDatabase() {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.deleteDatabase('MegabitMenuDB');
+                
+                request.onerror = function(event) {
+                    console.error('Ошибка при удалении базы данных:', event.target.error);
+                    reject('Ошибка при удалении базы данных');
+                };
+                
+                request.onsuccess = function() {
+                    console.log('База данных успешно удалена');
+                    resolve();
+                };
+            });
+        }
+
+        // Инициализация IndexedDB
+        async function initIndexedDB() {
+            try {
+                // Сначала удаляем существующую базу данных
+                await deleteDatabase();
+                
+                return new Promise((resolve, reject) => {
+                    const request = indexedDB.open('MegabitMenuDB', 1);
+                    
+                    request.onerror = function(event) {
+                        console.error('Ошибка при открытии базы данных:', event.target.error);
+                        reject('Ошибка при открытии базы данных');
+                    };
+                    
+                    request.onupgradeneeded = function(event) {
+                        const db = event.target.result;
+                        
+                        // Создаем хранилище для данных меню
+                        const menuStore = db.createObjectStore('menuData', { keyPath: 'id' });
+                        menuStore.createIndex('current', 'id', { unique: true });
+                        
+                        // Создаем хранилище для изображений
+                        db.createObjectStore('images', { keyPath: 'id' });
+                        
+                        // Создаем хранилище для заказов
+                        db.createObjectStore('orders', { keyPath: 'id', autoIncrement: true });
+                        
+                        // Создаем хранилище для настроек
+                        db.createObjectStore('settings', { keyPath: 'id' });
+                    };
+                    
+                    request.onsuccess = function(event) {
+                        const db = event.target.result;
+                        resolve(db);
+                    };
+                });
+            } catch (error) {
+                console.error('Ошибка при инициализации базы данных:', error);
+                throw error;
+            }
+        }
 
         // Включение звуковых уведомлений после взаимодействия с страницей
         document.addEventListener('click', function() {
