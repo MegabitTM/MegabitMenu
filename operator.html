@@ -9,7 +9,6 @@
     <link rel="stylesheet" href="lib/bootstrap-icons/font/bootstrap-icons.css">
     <link rel="stylesheet" href="style.css">
     <script src="lib/bootstrap/js/bootstrap.bundle.min.js"></script>
-    <script src="script.js"></script>
     <style>
         .order-card {
             margin-bottom: 15px;
@@ -33,12 +32,8 @@
             background: linear-gradient(45deg, #ffc107, #ffdb4d);
             color: #000;
         }
-        .status-preparing { 
+        .status-in_progress { 
             background: linear-gradient(45deg, #0dcaf0, #3dd5f3);
-            color: #fff;
-        }
-        .status-ready { 
-            background: linear-gradient(45deg, #198754, #2fb344);
             color: #fff;
         }
         .status-completed { 
@@ -80,10 +75,6 @@
         }
         .btn-outline-info .badge {
             background-color: #0dcaf0 !important;
-            color: #fff;
-        }
-        .btn-outline-success .badge {
-            background-color: #198754 !important;
             color: #fff;
         }
         .btn-outline-secondary .badge {
@@ -138,8 +129,7 @@
             
             <div class="filter-buttons">
                 <button class="btn btn-outline-warning" data-status="new">Новые</button>
-                <button class="btn btn-outline-info" data-status="preparing">Готовятся</button>
-                <button class="btn btn-outline-success" data-status="ready">Готовы</button>
+                <button class="btn btn-outline-info" data-status="in_progress">В работе</button>
                 <button class="btn btn-outline-secondary" data-status="completed">Завершённые</button>
                 <button class="btn btn-outline-primary" data-status="all">Все заказы</button>
             </div>
@@ -159,6 +149,31 @@
         let notificationEnabled = false;
         let previousOrderIds = new Set();
         let activeFilter = 'all';
+        let db = null;
+
+        // Инициализация IndexedDB
+        async function initIndexedDB() {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open('MegabitMenuDB', 1);
+                
+                request.onerror = function(event) {
+                    console.error('Ошибка при открытии базы данных:', event.target.error);
+                    reject('Ошибка при открытии базы данных');
+                };
+                
+                request.onupgradeneeded = function(event) {
+                    const db = event.target.result;
+                    if (!db.objectStoreNames.contains('orders')) {
+                        db.createObjectStore('orders', { keyPath: 'id', autoIncrement: true });
+                    }
+                };
+                
+                request.onsuccess = function(event) {
+                    const db = event.target.result;
+                    resolve(db);
+                };
+            });
+        }
 
         // Загрузка заказов
         async function loadOrders() {
