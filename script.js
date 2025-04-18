@@ -1961,29 +1961,40 @@ async function confirmOrder() {
         const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
 
         const orderData = {
+            id: Date.now(),
             items: cart,
             total: total,
-            comment: comment
+            comment: comment,
+            timestamp: new Date().toISOString(),
+            status: 'new'
         };
 
-        const response = await fetch('save_order.php', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(orderData)
+        // Сохраняем заказ в IndexedDB
+        if (!db) {
+            db = await initIndexedDB();
+        }
+
+        const transaction = db.transaction(['orders'], 'readwrite');
+        const store = transaction.objectStore('orders');
+        
+        await new Promise((resolve, reject) => {
+            const request = store.add(orderData);
+            
+            request.onsuccess = () => {
+                console.log('Заказ успешно сохранен');
+                resolve();
+            };
+            
+            request.onerror = (event) => {
+                console.error('Ошибка при сохранении заказа:', event.target.error);
+                reject(event.target.error);
+            };
         });
 
-        const result = await response.json();
-
-        if (result.success) {
-            alert('Заказ успешно отправлен!');
-            clearCart();
-            hideConfirmOrderModal();
-            updateCartBadge();
-        } else {
-            throw new Error(result.error || 'Ошибка при отправке заказа');
-        }
+        alert('Заказ успешно отправлен!');
+        clearCart();
+        hideConfirmOrderModal();
+        updateCartBadge();
     } catch (error) {
         console.error('Ошибка при отправке заказа:', error);
         alert('Ошибка при отправке заказа: ' + error.message);
