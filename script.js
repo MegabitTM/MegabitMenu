@@ -68,7 +68,7 @@ let appData = {
 };
 
 // Инициализация IndexedDB
-function initIndexedDB() {
+async function initIndexedDB() {
     return new Promise((resolve, reject) => {
         const request = indexedDB.open('MegabitMenuDB', 1);
         
@@ -102,7 +102,7 @@ function initIndexedDB() {
         };
         
         request.onsuccess = function(event) {
-            const db = event.target.result;
+            db = event.target.result; // Присваиваем глобальной переменной db
             resolve(db);
         };
     });
@@ -268,7 +268,7 @@ async function saveData() {
 // Функция загрузки данных
 async function loadData() {
     try {
-        // Сначала пробуем загрузить из IndexedDB
+        // Инициализируем базу данных, если она еще не инициализирована
         if (!db) {
             db = await initIndexedDB();
         }
