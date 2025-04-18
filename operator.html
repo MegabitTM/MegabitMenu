@@ -232,29 +232,36 @@
 
         async function loadOrders() {
             try {
-                // Загружаем заказы из localStorage
-                const savedOrders = localStorage.getItem('orders');
-                if (savedOrders) {
-                    return JSON.parse(savedOrders);
+                // Инициализируем IndexedDB
+                if (!window.db) {
+                    window.db = await initIndexedDB();
                 }
 
-                // Если в localStorage нет заказов, загружаем из orders.json
-                const response = await fetch('orders.json');
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                const data = await response.json();
-                if (!Array.isArray(data)) {
-                    throw new Error('Invalid data format');
-                }
+                // Загружаем заказы из IndexedDB
+                const transaction = window.db.transaction(['orders'], 'readonly');
+                const store = transaction.objectStore('orders');
+                const request = store.getAll();
 
-                // Сохраняем заказы в localStorage
-                localStorage.setItem('orders', JSON.stringify(data));
+                orders = await new Promise((resolve, reject) => {
+                    request.onsuccess = () => resolve(request.result);
+                    request.onerror = () => reject(request.error);
+                });
 
-                return data;
+                // Обновляем отображение
+                updateActiveFilterButton();
+                displayOrders();
+
+                // Проверяем новые заказы
+                const newOrderIds = new Set(orders.map(order => order.id));
+                const hasNewOrders = Array.from(newOrderIds).some(id => !previousOrderIds.has(id));
+                
+                if (hasNewOrders) {
+                    playNotification();
+                }
+                
+                previousOrderIds = newOrderIds;
             } catch (error) {
                 console.error('Ошибка при загрузке заказов:', error);
-                throw error;
             }
         }
 
@@ -267,14 +274,8 @@
 
             // Фильтруем заказы по выбранному фильтру
             let filteredOrders = orders;
-            if (currentFilter === 'today') {
-                const today = new Date();
-                filteredOrders = orders.filter(order => {
-                    const orderDate = new Date(order.timestamp * 1000);
-                    return orderDate.toDateString() === today.toDateString();
-                });
-            } else if (currentFilter === 'new') {
-                filteredOrders = orders.filter(order => !order.processed);
+            if (currentFilter !== 'all') {
+                filteredOrders = orders.filter(order => order.status === currentFilter);
             }
 
             // Сортируем заказы по времени (новые сверху)
@@ -283,33 +284,39 @@
             // Отображаем заказы
             filteredOrders.forEach(order => {
                 const orderElement = document.createElement('div');
-                orderElement.className = `order ${order.processed ? 'processed' : ''}`;
+                orderElement.className = 'col-md-6 col-lg-4 mb-4';
                 orderElement.innerHTML = `
-                    <div class="order-header">
-                        <span class="order-id">Заказ #${order.id}</span>
-                        <span class="order-time">${new Date(order.timestamp * 1000).toLocaleString()}</span>
-                    </div>
-                    <div class="order-items">
-                        ${order.items.map(item => `
-                            <div class="order-item">
-                                <span class="item-name">${item.name}</span>
-                                <span class="item-quantity">x${item.quantity}</span>
-                                <span class="item-price">${item.price * item.quantity} TMT</span>
-                            </div>
-                        `).join('')}
-                    </div>
-                    <div class="order-total">
-                        Итого: ${order.total} TMT
-                    </div>
-                    ${order.comment ? `
-                        <div class="order-comment">
-                            Комментарий: ${order.comment}
+                    <div class="order-card p-3">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <h5 class="mb-0">Заказ #${order.id}</h5>
+                            <span class="order-status status-${order.status}">
+                                ${getStatusText(order.status)}
+                            </span>
                         </div>
-                    ` : ''}
-                    <div class="order-actions">
-                        <button class="process-btn" onclick="processOrder(${order.id})">
-                            ${order.processed ? 'Отменить обработку' : 'Обработать'}
-                        </button>
+                        <div class="order-time mb-2">
+                            ${new Date(order.timestamp * 1000).toLocaleString()}
+                        </div>
+                        <div class="order-items mb-3">
+                            ${order.items.map(item => `
+                                <div class="d-flex justify-content-between mb-1">
+                                    <span>${item.name} x${item.quantity}</span>
+                                    <span>${item.price * item.quantity} TMT</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                        <div class="order-total fw-bold mb-2">
+                            Итого: ${order.total} TMT
+                        </div>
+                        ${order.comment ? `
+                            <div class="order-comment">
+                                <strong>Комментарий:</strong> ${order.comment}
+                            </div>
+                        ` : ''}
+                        <div class="d-flex justify-content-end mt-3">
+                            <button class="btn btn-primary" onclick="updateOrderStatus('${order.id}', '${getNextStatus(order.status)}')">
+                                ${getNextStatusText(order.status)}
+                            </button>
+                        </div>
                     </div>
                 `;
                 ordersContainer.appendChild(orderElement);

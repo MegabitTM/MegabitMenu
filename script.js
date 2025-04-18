@@ -151,12 +151,16 @@ const saveOrders = async (orders) => {
 };
 
 const getOrders = async () => {
+    if (!db) {
+        db = await initIndexedDB();
+    }
+    
     const transaction = db.transaction(['orders'], 'readonly');
     const store = transaction.objectStore('orders');
     const request = store.getAll();
     
     return new Promise((resolve, reject) => {
-        request.onsuccess = () => resolve(request.result[0]);
+        request.onsuccess = () => resolve(request.result);
         request.onerror = () => reject(request.error);
     });
 };
