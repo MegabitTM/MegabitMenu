@@ -355,70 +355,51 @@
         
         // Загрузка данных отчета
         async function loadReportData() {
-            const startDate = document.getElementById('start-date').value;
-            const endDate = document.getElementById('end-date').value;
-            
-            if (!startDate || !endDate) {
-                alert('Пожалуйста, выберите период');
-                return;
-            }
-            
             try {
-                // Загружаем заказы
-                const response = await fetch('get_orders.php');
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
+                const startDate = document.getElementById('start-date').value;
+                const endDate = document.getElementById('end-date').value;
+                
+                if (!startDate || !endDate) {
+                    alert('Пожалуйста, выберите период');
+                    return;
                 }
-                const data = await response.json();
-                if (!Array.isArray(data)) {
-                    throw new Error('Полученные данные не являются массивом');
+                
+                // Загружаем заказы из localStorage
+                let orders = JSON.parse(localStorage.getItem('orders') || '[]');
+                
+                // Если в localStorage нет заказов, загружаем из orders.json
+                if (!orders.length) {
+                    const response = await fetch('orders.json');
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    orders = await response.json();
+                    if (!Array.isArray(orders)) {
+                        throw new Error('Полученные данные не являются массивом');
+                    }
                 }
                 
                 // Фильтруем заказы по выбранному периоду
                 const startTimestamp = new Date(startDate).getTime() / 1000;
                 const endTimestamp = new Date(endDate + 'T23:59:59').getTime() / 1000;
                 
-                const filteredOrders = data.filter(order => {
-                    return order.timestamp >= startTimestamp && order.timestamp <= endTimestamp;
+                const filteredOrders = orders.filter(order => {
+                    const orderTimestamp = order.timestamp;
+                    return orderTimestamp >= startTimestamp && orderTimestamp <= endTimestamp;
                 });
+                
+                // Сортируем заказы по времени
+                filteredOrders.sort((a, b) => a.timestamp - b.timestamp);
+                
+                // Отображаем заказы
+                displayOrders(filteredOrders);
                 
                 // Обновляем статистику
                 updateStatistics(filteredOrders);
                 
-                // Обновляем графики только если Chart.js загружен
-                if (chartJsLoaded) {
-                    updateCharts(filteredOrders);
-                }
-                
-                // Обновляем таблицу заказов
-                updateOrdersTable(filteredOrders);
-                
-                // Включаем кнопку экспорта
-                document.getElementById('export-btn').disabled = false;
-                
             } catch (error) {
                 console.error('Ошибка при загрузке данных:', error);
-                
-                // Показываем сообщение об ошибке в таблице
-                const tableBody = document.getElementById('orders-table-body');
-                tableBody.innerHTML = `
-                    <tr>
-                        <td colspan="6" class="text-center text-danger">
-                            <i class="bi bi-exclamation-triangle"></i> Ошибка при загрузке данных: ${error.message}
-                        </td>
-                    </tr>
-                `;
-                
-                // Сбрасываем статистику
-                document.getElementById('total-revenue').textContent = '0 TMT';
-                document.getElementById('total-orders').textContent = '0';
-                document.getElementById('average-order').textContent = '0 TMT';
-                document.getElementById('completed-orders').textContent = '0';
-                document.getElementById('shown-orders').textContent = '0';
-                document.getElementById('total-filtered-orders').textContent = '0';
-                
-                // Отключаем кнопку экспорта
-                document.getElementById('export-btn').disabled = true;
+                alert('Ошибка при загрузке данных: ' + error.message);
             }
         }
         
