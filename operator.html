@@ -241,7 +241,7 @@
             }
 
             // Сортируем заказы по времени (новые сверху)
-            filteredOrders.sort((a, b) => b.timestamp - a.timestamp);
+            filteredOrders.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 
             // Отображаем заказы
             filteredOrders.forEach(order => {
@@ -256,18 +256,18 @@
                             </span>
                         </div>
                         <div class="order-time mb-2">
-                            ${new Date(order.timestamp * 1000).toLocaleString()}
+                            ${new Date(order.timestamp).toLocaleString()}
                         </div>
                         <div class="order-items mb-3">
                             ${order.items.map(item => `
                                 <div class="d-flex justify-content-between mb-1">
                                     <span>${item.name} x${item.quantity}</span>
-                                    <span>${item.price * item.quantity} TMT</span>
+                                    <span>${item.price * item.quantity} ₽</span>
                                 </div>
                             `).join('')}
                         </div>
                         <div class="order-total fw-bold mb-2">
-                            Итого: ${order.total} TMT
+                            Итого: ${order.items.reduce((sum, item) => sum + item.price * item.quantity, 0)} ₽
                         </div>
                         ${order.comment ? `
                             <div class="order-comment">
@@ -275,9 +275,16 @@
                             </div>
                         ` : ''}
                         <div class="d-flex justify-content-end mt-3">
-                            <button class="btn btn-primary" onclick="updateOrderStatus('${order.id}', '${getNextStatus(order.status)}')">
-                                ${getNextStatusText(order.status)}
-                            </button>
+                            ${order.status === 'new' ? `
+                                <button class="btn btn-primary" onclick="processOrder('${order.id}', 'in_progress')">
+                                    В работу
+                                </button>
+                            ` : ''}
+                            ${order.status === 'in_progress' ? `
+                                <button class="btn btn-success" onclick="processOrder('${order.id}', 'completed')">
+                                    Завершить
+                                </button>
+                            ` : ''}
                         </div>
                     </div>
                 `;
@@ -288,56 +295,10 @@
         function getStatusText(status) {
             const statusMap = {
                 'new': 'Новый',
-                'preparing': 'Готовится',
-                'ready': 'Готов',
+                'in_progress': 'В работе',
                 'completed': 'Завершён'
             };
             return statusMap[status] || status;
-        }
-
-        function getNextStatus(currentStatus) {
-            const statusFlow = {
-                'new': 'preparing',
-                'preparing': 'ready',
-                'ready': 'completed'
-            };
-            return statusFlow[currentStatus] || currentStatus;
-        }
-
-        function getNextStatusText(currentStatus) {
-            const nextStatus = getNextStatus(currentStatus);
-            return getStatusText(nextStatus);
-        }
-
-        async function updateOrderStatus(orderId, newStatus) {
-            try {
-                const response = await fetch('update_order_status.php', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ orderId, status: newStatus })
-                });
-
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-
-                await loadOrders();
-            } catch (error) {
-                console.error('Ошибка при обновлении статуса:', error);
-                alert('Ошибка при обновлении статуса заказа');
-            }
-        }
-
-        async function saveOrders() {
-            try {
-                // Сохраняем заказы в localStorage
-                localStorage.setItem('orders', JSON.stringify(orders));
-            } catch (error) {
-                console.error('Ошибка при сохранении заказов:', error);
-                throw error;
-            }
         }
 
         async function processOrder(orderId, newStatus) {
