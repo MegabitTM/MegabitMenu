@@ -1,6 +1,17 @@
 // Глобальная переменная для хранения экземпляра базы данных
 let db = null;
 
+// Функция получения корзины из localStorage
+function getCart() {
+    const cartJson = localStorage.getItem('cart');
+    return cartJson ? JSON.parse(cartJson) : [];
+}
+
+// Функция сохранения корзины в localStorage
+function saveCart(cart) {
+    localStorage.setItem('cart', JSON.stringify(cart));
+}
+
 // Функция для расчета общей суммы заказа
 function calculateTotal() {
     const cart = getCart();
@@ -705,17 +716,6 @@ function showAddToCartNotification(item) {
             document.body.removeChild(notification);
         }, 500);
     }, 3000);
-}
-
-// Функция получения корзины из localStorage
-function getCart() {
-    const cartJson = localStorage.getItem('cart');
-    return cartJson ? JSON.parse(cartJson) : [];
-}
-
-// Функция сохранения корзины в localStorage
-function saveCart(cart) {
-    localStorage.setItem('cart', JSON.stringify(cart));
 }
 
 // Функция добавления в корзину
