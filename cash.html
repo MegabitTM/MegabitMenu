@@ -397,6 +397,11 @@
                 // Обновляем статистику
                 updateStatistics(filteredOrders);
                 
+                // Обновляем графики
+                if (chartJsLoaded) {
+                    updateCharts(filteredOrders);
+                }
+                
             } catch (error) {
                 console.error('Ошибка при загрузке данных:', error);
                 alert('Ошибка при загрузке данных: ' + error.message);
@@ -665,8 +670,8 @@
             }
         }
         
-        // Обновление таблицы заказов
-        function updateOrdersTable(orders) {
+        // Функция для отображения заказов в таблице
+        function displayOrders(orders) {
             const tableBody = document.getElementById('orders-table-body');
             tableBody.innerHTML = '';
             
@@ -678,9 +683,6 @@
                 `;
                 return;
             }
-            
-            // Сортируем заказы по времени (новые сверху)
-            orders.sort((a, b) => b.timestamp - a.timestamp);
             
             orders.forEach((order, index) => {
                 const orderDate = new Date(order.timestamp * 1000);
@@ -697,6 +699,13 @@
                 
                 tableBody.appendChild(row);
             });
+            
+            // Обновляем счетчики в футере
+            document.getElementById('shown-orders').textContent = orders.length;
+            document.getElementById('total-filtered-orders').textContent = orders.length;
+            
+            // Включаем кнопку экспорта
+            document.getElementById('export-btn').disabled = false;
         }
         
         // Получение класса для бейджа статуса
