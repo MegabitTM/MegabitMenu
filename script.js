@@ -1,3 +1,219 @@
+// Глобальная переменная для хранения экземпляра базы данных
+let db = null;
+
+// Функция получения корзины из localStorage
+function getCart() {
+    const cartJson = localStorage.getItem('cart');
+    return cartJson ? JSON.parse(cartJson) : [];
+}
+
+// Функция сохранения корзины в localStorage
+function saveCart(cart) {
+    localStorage.setItem('cart', JSON.stringify(cart));
+}
+
+// Функция для расчета общей суммы заказа
+function calculateTotal() {
+    const cart = getCart();
+    let total = 0;
+    
+    cart.forEach(item => {
+        total += item.price * item.quantity;
+    });
+    
+    // Добавляем процент обслуживания, если он установлен
+    const serviceTip = appData.settings.serviceTip || 0;
+    if (serviceTip > 0) {
+        total += total * (serviceTip / 100);
+    }
+    
+    return Math.round(total);
+}
+
+// Функция для отправки заказа
+async function sendOrder() {
+    const cart = getCart();
+    if (cart.length === 0) {
+        alert('Корзина пуста');
+        return;
+    }
+
+    // Создаем объект заказа
+    const order = {
+        items: cart,
+        total: calculateTotal(),
+        timestamp: new Date().toISOString(),
+        status: 'new',
+        comment: document.getElementById('order-comment')?.value || ''
+    };
+
+    try {
+        // Сохраняем заказ в IndexedDB
+        const transaction = db.transaction(['orders'], 'readwrite');
+        const store = transaction.objectStore('orders');
+        await store.add(order);
+
+        // Очищаем корзину
+        clearCart();
+        
+        // Закрываем модальное окно корзины
+        elements.cartModal.style.display = 'none';
+        
+        // Показываем уведомление об успешном заказе
+        alert('Заказ успешно отправлен!');
+    } catch (error) {
+        console.error('Ошибка при сохранении заказа:', error);
+        alert('Произошла ошибка при отправке заказа. Пожалуйста, попробуйте еще раз.');
+    }
+}
+
+// Инициализация элементов DOM
+const elements = {
+    menuContainer: document.getElementById('menu-container'),
+    navTabs: document.getElementById("nav-tabs"),
+    cartButton: document.getElementById("cart-button"),
+    cartBadge: document.getElementById("cart-badge"),
+    cartModal: document.getElementById("cart-modal"),
+    cartItemsModal: document.getElementById("cart-items-modal"),
+    cartSummaryModal: document.getElementById("cart-summary-modal"),
+    clearCartBtn: document.getElementById("clear-cart-btn"),
+    editModal: document.getElementById("edit-modal"),
+    editForm: document.getElementById("edit-form"),
+    editName: document.getElementById("edit-name"),
+    editDescription: document.getElementById("edit-description"),
+    editPrice: document.getElementById("edit-price"),
+    editImgFile: document.getElementById("edit-img-file"),
+    editCategorySelect: document.getElementById("edit-category-select"),
+    editCategoryHidden: document.getElementById("edit-category"),
+    editIndex: document.getElementById("edit-index"),
+    stopListToggle: document.getElementById("stop-list-toggle"),
+    editModalTitle: document.getElementById("edit-modal-title"),
+    adminPanelModal: document.getElementById("admin-panel-modal"),
+    headerLogoDiv: document.getElementById("header-logo"),
+    adminNavButtons: document.querySelectorAll("#admin-nav button"),
+    adminSections: document.querySelectorAll(".admin-section"),
+    adminEditContent: document.getElementById("admin-edit-content"),
+    adminAddDishBtn: document.getElementById("admin-add-dish-btn"),
+    adminSettingsForm: document.getElementById("admin-settings-form"),
+    adminLogoFileInput: document.getElementById("admin-logo-file"),
+    adminLogoSizeInput: document.getElementById("admin-logo-size"),
+    adminHeaderBgColorInput: document.getElementById("admin-header-bg-color"),
+    adminHeaderBgImageInput: document.getElementById("admin-header-bg-image"),
+    adminServiceTipInput: document.getElementById("admin-service-tip"),
+    adminCategoriesSettingsDiv: document.getElementById("admin-categories-settings"),
+    adminAddCategoryBtn: document.getElementById("admin-add-category-btn"),
+    adminPasswordInput: document.getElementById("admin-password"),
+    themeToggleBtn: document.getElementById("theme-toggle"),
+    adminPasswordModal: document.getElementById("admin-password-modal"),
+    adminPasswordForm: document.getElementById("admin-password-form"),
+    adminPasswordInputModal: document.getElementById("admin-password-input"),
+    toggleAdminPassword: document.getElementById("toggle-admin-password"),
+    exportDataBtn: document.getElementById("export-data"),
+    importDataBtn: document.getElementById("import-data"),
+    importDataInput: document.getElementById("import-data-input"),
+    progressModal: document.createElement("div"),
+    progressBar: document.createElement("div"),
+    progressText: document.createElement("div"),
+    progressTitle: document.createElement("div")
+};
+
+// Инициализация прогресс-бара
+elements.progressModal.className = "modal progress-modal";
+elements.progressModal.innerHTML = `
+    <div class="modal-content">
+        <h3 id="progress-title">Обработка...</h3>
+        <div class="progress-container">
+            <div class="progress-bar"></div>
+        </div>
+        <div class="progress-text">0%</div>
+    </div>
+`;
+if (document.body) {
+    document.body.appendChild(elements.progressModal);
+    elements.progressBar = elements.progressModal.querySelector('.progress-bar');
+    elements.progressText = elements.progressModal.querySelector('.progress-text');
+    elements.progressTitle = elements.progressModal.querySelector('#progress-title');
+}
+
+// Функции для работы с прогресс-баром
+function showProgress(title = "Обработка...") {
+    elements.progressTitle.textContent = title;
+    elements.progressBar.style.width = "0%";
+    elements.progressText.textContent = "0%";
+    elements.progressModal.style.display = "block";
+}
+
+function updateProgress(percent, text = null) {
+    elements.progressBar.style.width = percent + "%";
+    elements.progressText.textContent = text || `${Math.round(percent)}%`;
+}
+
+function hideProgress() {
+    elements.progressModal.style.display = "none";
+}
+
+// Добавляем обработчики закрытия модальных окон по клику вне их области
+const modals = [
+    elements.cartModal,
+    elements.editModal,
+    elements.adminPanelModal,
+    elements.adminPasswordModal,
+    document.getElementById('confirm-order-modal') // Добавляем модальное окно подтверждения заказа
+];
+
+window.addEventListener('click', (event) => {
+    modals.forEach(modal => {
+        if (event.target === modal) {
+            modal.style.display = 'none';
+        }
+    });
+});
+
+// Предотвращаем закрытие модального окна при клике на его содержимое
+document.querySelectorAll('.modal-content').forEach(content => {
+    content.addEventListener('click', (event) => {
+        event.stopPropagation();
+    });
+});
+
+// Функция для сохранения изображения
+async function saveImage(imageFile) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = async function(e) {
+            const imageData = e.target.result;
+            
+            // Инициализируем базу данных, если она еще не инициализирована
+            if (!db) {
+                db = await initIndexedDB();
+            }
+            
+            const transaction = db.transaction(['images'], 'readwrite');
+            const store = transaction.objectStore('images');
+            
+            const request = store.put({
+                id: imageFile.name,
+                data: imageData,
+                timestamp: Date.now()
+            });
+            
+            request.onsuccess = function() {
+                resolve(imageData);
+            };
+            
+            request.onerror = function() {
+                reject('Ошибка при сохранении изображения');
+            };
+        };
+        
+        reader.onerror = function() {
+            reject('Ошибка при чтении файла');
+        };
+        
+        reader.readAsDataURL(imageFile);
+    });
+}
+
 // Базовые данные приложения
 let appData = {
     cart: [],
@@ -23,56 +239,106 @@ let appData = {
     }
 };
 
-// Инициализация IndexedDB
-let db;
-const DB_NAME = 'RestaurantMenuDB';
-const DB_VERSION = 1;
-const STORE_NAME = 'appData';
-
-async function initDB() {
+// Функция для удаления существующей базы данных
+function deleteDatabase() {
     return new Promise((resolve, reject) => {
-        // Удаляем старую базу данных
-        const deleteRequest = indexedDB.deleteDatabase(DB_NAME);
+        const request = indexedDB.deleteDatabase('MegabitMenuDB');
         
-        deleteRequest.onsuccess = () => {
-            // Создаем новую базу данных
-            const request = indexedDB.open(DB_NAME, DB_VERSION);
-            
-            request.onerror = () => reject(request.error);
-            
-            request.onupgradeneeded = (event) => {
-                const db = event.target.result;
-            if (!db.objectStoreNames.contains(STORE_NAME)) {
-                    db.createObjectStore(STORE_NAME);
-                }
-            };
-            
-            request.onsuccess = () => {
-                db = request.result;
-                resolve(db);
-            };
+        request.onerror = function(event) {
+            console.error('Ошибка при удалении базы данных:', event.target.error);
+            reject('Ошибка при удалении базы данных');
         };
         
-        deleteRequest.onerror = () => {
-            // Если не удалось удалить, пробуем просто открыть
-            const request = indexedDB.open(DB_NAME, DB_VERSION);
-            
-            request.onerror = () => reject(request.error);
-            
-            request.onupgradeneeded = (event) => {
-                const db = event.target.result;
-                if (!db.objectStoreNames.contains(STORE_NAME)) {
-                    db.createObjectStore(STORE_NAME);
-                }
-            };
-            
-            request.onsuccess = () => {
-                db = request.result;
-                resolve(db);
-            };
+        request.onsuccess = function() {
+            console.log('База данных успешно удалена');
+            resolve();
         };
     });
 }
+
+// Инициализация IndexedDB
+async function initIndexedDB() {
+    try {
+        // Сначала удаляем существующую базу данных
+        await deleteDatabase();
+        
+    return new Promise((resolve, reject) => {
+            const request = indexedDB.open('MegabitMenuDB', 1);
+            
+            request.onerror = function(event) {
+                console.error('Ошибка при открытии базы данных:', event.target.error);
+                reject('Ошибка при открытии базы данных');
+            };
+            
+            request.onupgradeneeded = function(event) {
+                const db = event.target.result;
+                
+                // Создаем хранилище для данных меню
+                const menuStore = db.createObjectStore('menuData', { keyPath: 'id' });
+                menuStore.createIndex('current', 'id', { unique: true });
+                
+                // Создаем хранилище для изображений
+                db.createObjectStore('images', { keyPath: 'id' });
+                
+                // Создаем хранилище для заказов
+                db.createObjectStore('orders', { keyPath: 'id', autoIncrement: true });
+                
+                // Создаем хранилище для настроек
+                db.createObjectStore('settings', { keyPath: 'id' });
+            };
+            
+            request.onsuccess = function(event) {
+                const db = event.target.result;
+                resolve(db);
+            };
+        });
+    } catch (error) {
+        console.error('Ошибка при инициализации базы данных:', error);
+        throw error;
+    }
+}
+
+// Функции для работы с меню
+const saveMenuData = async (data) => {
+    const transaction = db.transaction(['menuData'], 'readwrite');
+    const store = transaction.objectStore('menuData');
+    await store.clear();
+    await store.add(data);
+};
+
+const getMenuData = async () => {
+    const transaction = db.transaction(['menuData'], 'readonly');
+    const store = transaction.objectStore('menuData');
+    const request = store.getAll();
+    
+    return new Promise((resolve, reject) => {
+        request.onsuccess = () => resolve(request.result[0]);
+            request.onerror = () => reject(request.error);
+    });
+};
+
+// Функции для работы с заказами
+const saveOrders = async (orders) => {
+    const transaction = db.transaction(['orders'], 'readwrite');
+    const store = transaction.objectStore('orders');
+    await store.clear();
+    await store.add(orders);
+};
+
+const getOrders = async () => {
+    if (!db) {
+        db = await initIndexedDB();
+    }
+    
+    const transaction = db.transaction(['orders'], 'readonly');
+    const store = transaction.objectStore('orders');
+    const request = store.getAll();
+    
+    return new Promise((resolve, reject) => {
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+    });
+};
 
 // Функция валидации данных
 function validateData(data) {
@@ -141,12 +407,12 @@ async function saveData() {
     try {
         // Сначала сохраняем в IndexedDB
         if (!db) {
-            db = await initDB();
+            db = await initIndexedDB();
         }
 
         await new Promise((resolve, reject) => {
-            const transaction = db.transaction([STORE_NAME], 'readwrite');
-            const store = transaction.objectStore(STORE_NAME);
+            const transaction = db.transaction(['menuData'], 'readwrite');
+            const store = transaction.objectStore('menuData');
             
             const request = store.put(appData, 'data');
             
@@ -160,35 +426,17 @@ async function saveData() {
             };
         });
 
-        // Затем сохраняем на сервере
-        const response = await fetch('save_data.php', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(appData)
-        });
-
-        if (!response.ok) {
-            throw new Error('Ошибка при сохранении данных на сервере');
-        }
-
-        const result = await response.json();
-        if (!result.success) {
-            throw new Error(result.error || 'Ошибка при сохранении данных');
-        }
-
-        console.log('Данные успешно сохранены на сервере');
-        return true;
-    } catch (error) {
-        console.error('Error saving data:', error);
-        // В случае ошибки сохраняем в localStorage как резервную копию
+        // Сохраняем резервную копию в localStorage
         try {
             localStorage.setItem('appData', JSON.stringify(appData));
             console.log('Данные сохранены в localStorage как резервная копия');
         } catch (e) {
             console.error('Error saving to localStorage:', e);
         }
+
+        return true;
+    } catch (error) {
+        console.error('Error saving data:', error);
         throw error;
     }
 }
@@ -196,75 +444,51 @@ async function saveData() {
 // Функция загрузки данных
 async function loadData() {
     try {
-        // Загружаем данные с сервера
-        const response = await fetch('load_data.php');
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        const data = await response.json();
-        
-        // Проверяем структуру данных
-        if (!data || typeof data !== 'object') {
-            throw new Error('Invalid data structure');
+        // Инициализируем базу данных, если она еще не инициализирована
+        if (!db) {
+            db = await initIndexedDB();
         }
         
-        // Проверяем обязательные поля
-        if (!data.settings || !data.categories || !Array.isArray(data.categories)) {
-            throw new Error('Missing required fields');
-        }
-        
-        // Преобразуем числовые значения
-        function convertNumericValues(obj) {
-            if (Array.isArray(obj)) {
-                return obj.map(item => convertNumericValues(item));
-            } else if (obj && typeof obj === 'object') {
-                const result = {};
-                for (const key in obj) {
-                    if (obj.hasOwnProperty(key)) {
-                        const value = obj[key];
-                        if (key === 'price' && typeof value === 'string') {
-                            result[key] = parseFloat(value);
+        return new Promise((resolve, reject) => {
+            const transaction = db.transaction(['menuData'], 'readonly');
+            const store = transaction.objectStore('menuData');
+            const request = store.get('current');
+            
+            request.onsuccess = function(event) {
+                const data = event.target.result;
+                if (data) {
+                    resolve(data.data);
                         } else {
-                            result[key] = convertNumericValues(value);
-                        }
-                    }
+                    // Если в IndexedDB нет данных, загружаем из data.json
+                    fetch('data.json')
+                        .then(response => {
+                            if (!response.ok) {
+                                throw new Error(`HTTP error! status: ${response.status}`);
+                            }
+                            return response.json();
+                        })
+                        .then(data => {
+                            // Сохраняем данные в IndexedDB
+                            const saveTransaction = db.transaction(['menuData'], 'readwrite');
+                            const saveStore = saveTransaction.objectStore('menuData');
+                            saveStore.put({ id: 'current', data: data });
+                            resolve(data);
+                        })
+                        .catch(error => {
+                            console.error('Ошибка при загрузке данных:', error);
+                            reject(error);
+                        });
                 }
-                return result;
-            }
-            return obj;
-        }
-        
-        // Применяем преобразование
-        const convertedData = convertNumericValues(data);
-        
-        // Очищаем IndexedDB перед сохранением новых данных
-        const db = await initDB();
-        const transaction = db.transaction(['appData'], 'readwrite');
-        const store = transaction.objectStore('appData');
-        await store.clear();
-        
-        // Сохраняем данные в IndexedDB
-        await store.put(convertedData, 'appData');
-        
-        // Обновляем appData
-        appData = convertedData;
-        
-        console.log('Data loaded successfully');
-        return true;
+            };
+            
+            request.onerror = function(event) {
+                console.error('Ошибка при загрузке данных из IndexedDB:', event.target.error);
+                reject(event.target.error);
+            };
+        });
     } catch (error) {
-        console.error('Error loading data:', error);
-        // Пробуем загрузить данные из localStorage как резервный вариант
-        try {
-            const savedData = localStorage.getItem('appData');
-            if (savedData) {
-                appData = JSON.parse(savedData);
-                console.log('Data loaded from localStorage');
-                return true;
-            }
-        } catch (e) {
-            console.error('Error loading from localStorage:', e);
-        }
-        return false;
+        console.error('Ошибка при инициализации базы данных:', error);
+        throw error;
     }
 }
 
@@ -288,113 +512,6 @@ function updateAppData(newData) {
     saveData();
 }
 
-// Ссылки на DOM-элементы
-const elements = {
-    menuContainer: document.getElementById("menu-container"),
-    navTabs: document.getElementById("nav-tabs"),
-    cartButton: document.getElementById("cart-button"),
-    cartBadge: document.getElementById("cart-badge"),
-    cartModal: document.getElementById("cart-modal"),
-    cartItemsModal: document.getElementById("cart-items-modal"),
-    cartSummaryModal: document.getElementById("cart-summary-modal"),
-    clearCartBtn: document.getElementById("clear-cart-btn"),
-    editModal: document.getElementById("edit-modal"),
-    editForm: document.getElementById("edit-form"),
-    editName: document.getElementById("edit-name"),
-    editDescription: document.getElementById("edit-description"),
-    editPrice: document.getElementById("edit-price"),
-    editImgFile: document.getElementById("edit-img-file"),
-    editCategorySelect: document.getElementById("edit-category-select"),
-    editCategoryHidden: document.getElementById("edit-category"),
-    editIndex: document.getElementById("edit-index"),
-    stopListToggle: document.getElementById("stop-list-toggle"),
-    editModalTitle: document.getElementById("edit-modal-title"),
-    adminPanelModal: document.getElementById("admin-panel-modal"),
-    headerLogoDiv: document.getElementById("header-logo"),
-    adminNavButtons: document.querySelectorAll("#admin-nav button"),
-    adminSections: document.querySelectorAll(".admin-section"),
-    adminEditContent: document.getElementById("admin-edit-content"),
-    adminAddDishBtn: document.getElementById("admin-add-dish-btn"),
-    adminSettingsForm: document.getElementById("admin-settings-form"),
-    adminLogoFileInput: document.getElementById("admin-logo-file"),
-    adminLogoSizeInput: document.getElementById("admin-logo-size"),
-    adminHeaderBgColorInput: document.getElementById("admin-header-bg-color"),
-    adminHeaderBgImageInput: document.getElementById("admin-header-bg-image"),
-    adminServiceTipInput: document.getElementById("admin-service-tip"),
-    adminCategoriesSettingsDiv: document.getElementById("admin-categories-settings"),
-    adminAddCategoryBtn: document.getElementById("admin-add-category-btn"),
-    adminPasswordInput: document.getElementById("admin-password"),
-    themeToggleBtn: document.getElementById("theme-toggle"),
-    adminPasswordModal: document.getElementById("admin-password-modal"),
-    adminPasswordForm: document.getElementById("admin-password-form"),
-    adminPasswordInputModal: document.getElementById("admin-password-input"),
-    toggleAdminPassword: document.getElementById("toggle-admin-password"),
-    exportDataBtn: document.getElementById("export-data"),
-    importDataBtn: document.getElementById("import-data"),
-    importDataInput: document.getElementById("import-data-input"),
-    progressModal: document.createElement("div"),
-    progressBar: document.createElement("div"),
-    progressText: document.createElement("div"),
-    progressTitle: document.createElement("div")
-};
-
-// Инициализация прогресс-бара
-elements.progressModal.className = "modal progress-modal";
-elements.progressModal.innerHTML = `
-    <div class="modal-content">
-        <h3 id="progress-title">Обработка...</h3>
-        <div class="progress-container">
-            <div class="progress-bar"></div>
-        </div>
-        <div class="progress-text">0%</div>
-    </div>
-`;
-document.body.appendChild(elements.progressModal);
-elements.progressBar = elements.progressModal.querySelector('.progress-bar');
-elements.progressText = elements.progressModal.querySelector('.progress-text');
-elements.progressTitle = elements.progressModal.querySelector('#progress-title');
-
-// Функции для работы с прогресс-баром
-function showProgress(title = "Обработка...") {
-    elements.progressTitle.textContent = title;
-    elements.progressBar.style.width = "0%";
-    elements.progressText.textContent = "0%";
-    elements.progressModal.style.display = "block";
-}
-
-function updateProgress(percent, text = null) {
-    elements.progressBar.style.width = percent + "%";
-    elements.progressText.textContent = text || `${Math.round(percent)}%`;
-}
-
-function hideProgress() {
-    elements.progressModal.style.display = "none";
-}
-
-// Добавляем обработчики закрытия модальных окон по клику вне их области
-const modals = [
-    elements.cartModal,
-    elements.editModal,
-    elements.adminPanelModal,
-    elements.adminPasswordModal,
-    document.getElementById('confirm-order-modal') // Добавляем модальное окно подтверждения заказа
-];
-
-window.addEventListener('click', (event) => {
-    modals.forEach(modal => {
-        if (event.target === modal) {
-            modal.style.display = 'none';
-        }
-    });
-});
-
-// Предотвращаем закрытие модального окна при клике на его содержимое
-document.querySelectorAll('.modal-content').forEach(content => {
-    content.addEventListener('click', (event) => {
-        event.stopPropagation();
-    });
-});
-
 // Функция рендеринга вкладок категорий
 function renderNavTabs() {
     if (!elements.navTabs) return;
@@ -417,48 +534,77 @@ function renderNavTabs() {
             }
             li.scrollIntoView({
                 behavior: 'smooth',
-                block: 'nearest',
-                inline: 'center'
+                block: 'nearest'
             });
         };
-        if (i === 0) li.className = "active";
         elements.navTabs.appendChild(li);
     });
 }
 
 // Функция для получения пути к изображению
-function getImagePath(path) {
-    if (!path) return 'images/placeholder.php';
+async function getImagePath(path) {
+    if (!path) return 'images/placeholder.jpg';
     if (path.startsWith('data:image')) return path;
     if (path.startsWith('http')) return path;
     if (path.startsWith('images/')) return path;
-    return 'images/' + path;
+
+    try {
+        // Получаем изображение из IndexedDB
+        if (!db) {
+            db = await initIndexedDB();
+        }
+
+        const transaction = db.transaction(['images'], 'readonly');
+        const store = transaction.objectStore('images');
+        const request = store.get(path);
+
+        return new Promise((resolve, reject) => {
+            request.onsuccess = () => {
+                if (request.result) {
+                    // Создаем URL для Blob
+                    const blob = request.result;
+                    const url = URL.createObjectURL(blob);
+                    resolve(url);
+                } else {
+                    resolve('images/placeholder.jpg');
+                }
+            };
+
+            request.onerror = () => {
+                console.error('Ошибка при получении изображения:', request.error);
+                resolve('images/placeholder.jpg');
+            };
+        });
+    } catch (error) {
+        console.error('Ошибка при получении изображения:', error);
+        return 'images/placeholder.jpg';
+    }
 }
 
 // Генерация секции категории
-function generateSection(cat) {
+async function generateSection(cat) {
     if (!cat || !cat.id) return null;
     const section = document.createElement("section");
     section.id = cat.id;
     section.className = "menu-section";
     if (appData.settings.categoryBackgrounds[cat.id]) {
-        section.style.backgroundImage = `url(${getImagePath(appData.settings.categoryBackgrounds[cat.id])})`;
+        section.style.backgroundImage = `url(${await getImagePath(appData.settings.categoryBackgrounds[cat.id])})`;
     }
     const cardsContainer = document.createElement("div");
     cardsContainer.className = "cards-container";
 
     const items = appData.menuData[cat.id] || [];
-    items.forEach((item, i) => {
-        const card = generateCard(item, cat.id, i);
+    for (const [i, item] of items.entries()) {
+        const card = await generateCard(item, cat.id, i);
         if (card) cardsContainer.appendChild(card);
-    });
+    }
 
     section.appendChild(cardsContainer);
     return section;
 }
 
 // Генерация карточки блюда
-function generateCard(item, categoryId, index) {
+async function generateCard(item, categoryId, index) {
     if (!item || !item.name || item.stopList) return null;
 
     const card = document.createElement("div");
@@ -466,7 +612,7 @@ function generateCard(item, categoryId, index) {
     card.onclick = () => showItemDetails(item);
 
     const img = document.createElement("img");
-    img.src = getImagePath(item.img || "https://via.placeholder.com/300x200");
+    img.src = await getImagePath(item.img || "https://via.placeholder.com/300x200");
     img.alt = item.name;
     card.appendChild(img);
 
@@ -504,13 +650,14 @@ function generateCard(item, categoryId, index) {
 }
 
 // Показ подробностей блюда
-function showItemDetails(item) {
+async function showItemDetails(item) {
+    const imgSrc = await getImagePath(item.img || 'https://via.placeholder.com/300x200');
     const modal = document.createElement("div");
     modal.className = "modal";
     modal.innerHTML = `
         <div class="modal-content">
             <span class="close">×</span>
-            <img src="${item.img || 'https://via.placeholder.com/300x200'}" alt="${item.name}" style="width:100%; height:auto;">
+            <img src="${imgSrc}" alt="${item.name}" style="width:100%; height:auto;">
             <h2>${item.name}</h2>
             <p>${item.description || 'Описание отсутствует'}</p>
             <p class="price">${item.price || 0} TMT</p>
@@ -530,17 +677,23 @@ function showItemDetails(item) {
 }
 
 // Рендер всего меню
-function renderMenu() {
+async function renderMenu() {
     renderNavTabs();
+    if (!elements.menuContainer) {
+        console.error('menuContainer не найден');
+        return;
+    }
     elements.menuContainer.innerHTML = "";
     if (!appData.categories || appData.categories.length === 0) {
         elements.menuContainer.innerHTML = "<p>Нет категорий для отображения</p>";
         return;
     }
-    appData.categories.forEach(cat => {
-        const section = generateSection(cat);
-        if (section) elements.menuContainer.appendChild(section);
-    });
+    for (const cat of appData.categories) {
+        const section = await generateSection(cat);
+        if (section && elements.menuContainer) {
+            elements.menuContainer.appendChild(section);
+        }
+    }
     if (appData.categories[0] && document.getElementById(appData.categories[0].id)) {
         document.getElementById(appData.categories[0].id).className = "menu-section active";
     }
@@ -563,17 +716,6 @@ function showAddToCartNotification(item) {
             document.body.removeChild(notification);
         }, 500);
     }, 3000);
-}
-
-// Функция получения корзины из localStorage
-function getCart() {
-    const cartJson = localStorage.getItem('cart');
-    return cartJson ? JSON.parse(cartJson) : [];
-}
-
-// Функция сохранения корзины в localStorage
-function saveCart(cart) {
-    localStorage.setItem('cart', JSON.stringify(cart));
 }
 
 // Функция добавления в корзину
@@ -723,42 +865,31 @@ function updateCartBadge() {
     }
 }
 
-// Открываем модальное окно редактирования блюда
-function openEditModal(categoryId, index, item) {
-    if (item) {
-        // Редактирование блюда
-        elements.editModalTitle.textContent = 'Редактировать блюдо';
-        elements.editName.value = item.name || '';
-        elements.editDescription.value = item.description || '';
-        elements.editPrice.value = item.price || '';
-        elements.editImgFile.value = '';
-        elements.stopListToggle.checked = item.stopList || false;
-        renderEditCategorySelect(categoryId);
-        elements.editCategoryHidden.value = categoryId || '';
-        elements.editIndex.value = index !== null ? index : '';
-    } else {
-        // Добавление нового блюда
-        elements.editModalTitle.textContent = 'Добавить блюдо';
-        elements.editName.value = '';
-        elements.editDescription.value = '';
-        elements.editPrice.value = '';
-        elements.editImgFile.value = '';
-        elements.stopListToggle.checked = false;
-        renderEditCategorySelect(categoryId);
-        elements.editCategoryHidden.value = ''; // Оставляем пустым для нового блюда
-        elements.editIndex.value = ''; // Оставляем пустым для нового блюда
-    }
-    elements.editModal.style.display = 'block';
+// Открытие модального окна редактирования блюда
+async function openEditModal(categoryId, index, item = null) {
+    elements.editModalTitle.textContent = item ? "Редактировать блюдо" : "Добавить блюдо";
+    elements.editName.value = item ? item.name : "";
+    elements.editDescription.value = item ? item.description || "" : "";
+    elements.editPrice.value = item ? item.price : "";
+    elements.stopListToggle.checked = item ? item.stopList : false;
+    elements.editIndex.value = index;
+    elements.editCategoryHidden.value = categoryId;
+    elements.editImgFile.value = "";
+
+    await renderEditCategorySelect(categoryId);
+    elements.editModal.style.display = "block";
 }
 
-// Рендер списка категорий в <select>
-function renderEditCategorySelect(selectedCatId) {
+// Рендер выпадающего списка категорий в форме редактирования
+async function renderEditCategorySelect(selectedCatId) {
+    if (!elements.editCategorySelect) return;
+
     elements.editCategorySelect.innerHTML = "";
     appData.categories.forEach(cat => {
         const option = document.createElement("option");
         option.value = cat.id;
         option.textContent = cat.name;
-        if (selectedCatId === cat.id) option.selected = true;
+        option.selected = cat.id === selectedCatId;
         elements.editCategorySelect.appendChild(option);
     });
 }
@@ -806,24 +937,32 @@ async function saveDish(imagePath) {
         
         // Если есть новое изображение
         if (imagePath instanceof File) {
-            const formData = new FormData();
-            formData.append('file', imagePath);
+            // Оптимизируем изображение
+            const optimizedBlob = await optimizeImage(imagePath, 800, 800, 0.9);
             
-            const response = await fetch('upload.php', {
-                method: 'POST',
-                body: formData
+            // Сохраняем изображение в IndexedDB
+            if (!db) {
+                db = await initIndexedDB();
+            }
+
+            const imageKey = `dish_${Date.now()}_${imagePath.name}`;
+            const transaction = db.transaction(['images'], 'readwrite');
+            const store = transaction.objectStore('images');
+            
+            await new Promise((resolve, reject) => {
+                const request = store.put(optimizedBlob, imageKey);
+                
+                request.onsuccess = () => {
+                    console.log('Изображение успешно сохранено');
+                    imageUrl = imageKey;
+                    resolve();
+                };
+                
+                request.onerror = (event) => {
+                    console.error('Ошибка при сохранении изображения:', event.target.error);
+                    reject(event.target.error);
+                };
             });
-
-            if (!response.ok) {
-                throw new Error('Ошибка при загрузке изображения');
-            }
-
-            const result = await response.json();
-            if (!result.success) {
-                throw new Error(result.error || 'Ошибка при загрузке изображения');
-            }
-            
-            imageUrl = result.path;
         } else if (imagePath) {
             // Если передано URL изображения
             imageUrl = imagePath;
@@ -883,8 +1022,8 @@ async function saveDish(imagePath) {
         await saveData();
         
         // Обновляем отображение
-        renderMenu();
-        renderAdminEditContent();
+        await renderMenu();
+        await renderAdminEditContent();
         elements.editModal.style.display = 'none';
     } catch (error) {
         console.error('Error saving dish:', error);
@@ -893,7 +1032,7 @@ async function saveDish(imagePath) {
 }
 
 // Рендер контента в админ-панели (секция редактирования блюд)
-function renderAdminEditContent() {
+async function renderAdminEditContent() {
     elements.adminEditContent.innerHTML = "";
     appData.categories.forEach(cat => {
         const catHeader = document.createElement("h3");
@@ -917,11 +1056,11 @@ function renderAdminEditContent() {
             const deleteBtn = document.createElement("button");
             deleteBtn.textContent = "Удалить";
             deleteBtn.className = "delete-btn";
-            deleteBtn.onclick = () => {
+            deleteBtn.onclick = async () => {
                 if (confirm("Удалить блюдо?")) {
                     appData.menuData[cat.id].splice(j, 1);
-                    renderMenu();
-                    renderAdminEditContent();
+                    await renderMenu();
+                    await renderAdminEditContent();
                     updateCartModal();
                     saveData();
                 }
@@ -948,54 +1087,43 @@ async function uploadLogo(file) {
             throw new Error('Изображение слишком большое (максимум 5MB)');
         }
 
-        // Проверяем директорию images
-        const checkResponse = await fetch('check_dir.php');
-        if (!checkResponse.ok) {
-            throw new Error('Ошибка при проверке директории images');
-        }
-        
-        const checkResult = await checkResponse.json();
-        if (!checkResult.writable) {
-            throw new Error(checkResult.error || 'Директория images не доступна для записи');
-        }
-
         // Оптимизируем изображение
         const optimizedBlob = await optimizeImage(file, 800, 800, 0.9);
         
-        // Формируем имя файла
-        const fileName = `logo_${Date.now()}.jpg`;
-        const filePath = `images/${fileName}`;
+        // Сохраняем изображение в IndexedDB
+        if (!db) {
+            db = await initIndexedDB();
+        }
+
+        const imageKey = `logo_${Date.now()}.jpg`;
+        const transaction = db.transaction(['images'], 'readwrite');
+        const store = transaction.objectStore('images');
         
-        // Создаем FormData для отправки
-        const formData = new FormData();
-        formData.append('file', optimizedBlob, fileName);
-        formData.append('path', filePath);
-        
-        // Отправляем на сервер
-        const response = await fetch('upload.php', {
-            method: 'POST',
-            body: formData
+        await new Promise((resolve, reject) => {
+            const request = store.put(optimizedBlob, imageKey);
+            
+            request.onsuccess = () => {
+                console.log('Логотип успешно сохранен');
+                resolve(imageKey);
+            };
+            
+            request.onerror = (event) => {
+                console.error('Ошибка при сохранении логотипа:', event.target.error);
+                reject(event.target.error);
+            };
         });
 
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const result = await response.json();
-        if (!result.success) {
-            throw new Error(result.error || 'Ошибка при загрузке логотипа');
-        }
-
-        // Обновляем путь к логотипу
-        appData.settings.headerLogo = result.path;
-        updateHeaderLogo();
+        // Обновляем путь к логотипу в настройках
+        appData.settings.headerLogo = imageKey;
         await saveData();
+
+        // Обновляем отображение логотипа
+        updateHeaderLogo();
         
-        // Показываем уведомление об успешной загрузке
-        alert('Логотип успешно загружен!');
+        return imageKey;
     } catch (error) {
         console.error('Error uploading logo:', error);
-        alert('Ошибка при загрузке логотипа: ' + error.message);
+        throw error;
     }
 }
 
@@ -1015,34 +1143,35 @@ async function uploadHeaderBackground(file) {
         // Оптимизируем изображение
         const optimizedBlob = await optimizeImage(file, 1920, 1080, 0.8);
         
-        // Формируем имя файла
-        const fileName = `header_${Date.now()}.jpg`;
-        const filePath = `images/${fileName}`;
+        // Сохраняем изображение в IndexedDB
+        if (!db) {
+            db = await initIndexedDB();
+        }
+
+        const imageKey = `header_${Date.now()}.jpg`;
+        const transaction = db.transaction(['images'], 'readwrite');
+        const store = transaction.objectStore('images');
         
-        // Создаем FormData для отправки
-        const formData = new FormData();
-        formData.append('file', optimizedBlob, fileName);
-        formData.append('path', filePath);
-        
-        // Отправляем на сервер
-        const response = await fetch('upload.php', {
-            method: 'POST',
-            body: formData
+        await new Promise((resolve, reject) => {
+            const request = store.put(optimizedBlob, imageKey);
+            
+            request.onsuccess = () => {
+                console.log('Фон шапки успешно сохранен');
+                resolve(imageKey);
+            };
+            
+            request.onerror = (event) => {
+                console.error('Ошибка при сохранении фона шапки:', event.target.error);
+                reject(event.target.error);
+            };
         });
 
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const result = await response.json();
-        if (!result.success) {
-            throw new Error(result.error || 'Ошибка при загрузке фона шапки');
-        }
-
-        // Обновляем путь к фону
-        appData.settings.headerBgImage = result.path;
-        updateHeaderLogo();
+        // Обновляем путь к фону в настройках
+        appData.settings.headerBgImage = imageKey;
         await saveData();
+
+        // Обновляем отображение
+        updateHeaderLogo();
         
         // Показываем уведомление об успешной загрузке
         alert('Фон шапки успешно загружен!');
@@ -1053,7 +1182,7 @@ async function uploadHeaderBackground(file) {
 }
 
 // Рендер формы настроек в админ-панели
-function renderAdminSettingsForm() {
+async function renderAdminSettingsForm() {
     elements.adminLogoSizeInput.value = appData.settings.logoSize;
     elements.adminHeaderBgColorInput.value = appData.settings.headerBgColor;
     elements.adminServiceTipInput.value = appData.settings.serviceTip;
@@ -1088,12 +1217,12 @@ function renderAdminSettingsForm() {
             </div>
         `;
 
-        div.querySelector(".edit-category-name-btn").onclick = () => {
+        div.querySelector(".edit-category-name-btn").onclick = async () => {
             const newName = prompt("Введите новое название категории:", cat.name);
             if (newName && newName.trim() && newName !== cat.name) {
                 cat.name = newName.trim();
-                renderMenu();
-                renderAdminSettingsForm();
+                await renderMenu();
+                await renderAdminSettingsForm();
                 saveData();
             }
         };
@@ -1116,34 +1245,33 @@ function renderAdminSettingsForm() {
                     // Оптимизируем изображение
                     const optimizedBlob = await optimizeImage(file, 1920, 1080, 0.8);
                     
-                    // Формируем имя файла
-                    const fileName = `category_${cat.id}_${Date.now()}.jpg`;
-                    const filePath = `images/${fileName}`;
+                    // Сохраняем изображение в IndexedDB
+                    if (!db) {
+                        db = await initIndexedDB();
+                    }
+
+                    const imageKey = `category_${cat.id}_${Date.now()}.jpg`;
+                    const transaction = db.transaction(['images'], 'readwrite');
+                    const store = transaction.objectStore('images');
                     
-                    // Создаем FormData для отправки
-                    const formData = new FormData();
-                    formData.append('file', optimizedBlob, fileName);
-                    formData.append('path', filePath);
-                    
-                    // Отправляем на сервер
-                    const response = await fetch('upload.php', {
-                        method: 'POST',
-                        body: formData
+                    await new Promise((resolve, reject) => {
+                        const request = store.put(optimizedBlob, imageKey);
+                        
+                        request.onsuccess = () => {
+                            console.log('Фон категории успешно сохранен');
+                            resolve(imageKey);
+                        };
+                        
+                        request.onerror = (event) => {
+                            console.error('Ошибка при сохранении фона категории:', event.target.error);
+                            reject(event.target.error);
+                        };
                     });
 
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! status: ${response.status}`);
-                    }
-
-                    const result = await response.json();
-                    if (!result.success) {
-                        throw new Error(result.error || 'Ошибка при загрузке изображения');
-                    }
-
                     // Сохраняем путь к изображению
-                    appData.settings.categoryBackgrounds[cat.id] = result.path;
-                    renderMenu();
-                    renderAdminSettingsForm();
+                    appData.settings.categoryBackgrounds[cat.id] = imageKey;
+                    await renderMenu();
+                    await renderAdminSettingsForm();
                     await saveData();
                     
                     // Показываем уведомление об успешной загрузке
@@ -1157,25 +1285,25 @@ function renderAdminSettingsForm() {
 
         const deleteBgBtn = div.querySelector(".delete-bg-btn");
         if (deleteBgBtn) {
-            deleteBgBtn.onclick = () => {
+            deleteBgBtn.onclick = async () => {
                 if (confirm("Удалить фон категории?")) {
                     delete appData.settings.categoryBackgrounds[cat.id];
                     const section = document.getElementById(cat.id);
                     if (section) section.style.backgroundImage = '';
-                    renderMenu();
-                    renderAdminSettingsForm();
+                    await renderMenu();
+                    await renderAdminSettingsForm();
                     saveData();
                 }
             };
         }
 
-        div.querySelector(".delete-category-btn").onclick = () => {
+        div.querySelector(".delete-category-btn").onclick = async () => {
             if (confirm("Удалить категорию? Все блюда из неё будут удалены.")) {
                 delete appData.settings.categoryBackgrounds[cat.id];
                 appData.categories = appData.categories.filter(c => c.id !== cat.id);
                 delete appData.menuData[cat.id];
-                renderMenu();
-                renderAdminSettingsForm();
+                await renderMenu();
+                await renderAdminSettingsForm();
                 saveData();
             }
         };
@@ -1198,44 +1326,39 @@ function renderAdminSettingsForm() {
 }
 
 // Обновление логотипа и фона шапки
-function updateHeaderLogo() {
+async function updateHeaderLogo() {
     const header = document.getElementById("header");
     if (!header) return;
 
     // Обновляем логотип
+    const logoDiv = document.getElementById("header-logo");
+    if (logoDiv) {
     if (appData.settings.headerLogo) {
-        const logoPath = getImagePath(appData.settings.headerLogo);
-        elements.headerLogoDiv.style.backgroundImage = `url(${logoPath})`;
-        elements.headerLogoDiv.style.backgroundSize = "contain";
-        elements.headerLogoDiv.style.backgroundRepeat = "no-repeat";
-        elements.headerLogoDiv.style.backgroundPosition = "center";
-        elements.headerLogoDiv.style.width = appData.settings.logoSize + "px";
-        elements.headerLogoDiv.style.height = appData.settings.logoSize + "px";
-        elements.headerLogoDiv.style.display = "block";
+            const logoSrc = await getImagePath(appData.settings.headerLogo);
+            logoDiv.innerHTML = `<img src="${logoSrc}" alt="Logo" style="height: ${appData.settings.logoSize || 50}px;">`;
     } else {
-        elements.headerLogoDiv.style.display = "none";
+            logoDiv.innerHTML = `<h1>MegabitMenu</h1>`;
+        }
     }
 
     // Обновляем фон шапки
-    header.style.backgroundColor = appData.settings.headerBgColor || "#ffffff";
     if (appData.settings.headerBgImage) {
-        const bgPath = getImagePath(appData.settings.headerBgImage);
-        header.style.backgroundImage = `url(${bgPath})`;
-        header.style.backgroundSize = "cover";
-        header.style.backgroundPosition = "center";
+        const bgSrc = await getImagePath(appData.settings.headerBgImage);
+        header.style.backgroundImage = `url(${bgSrc})`;
     } else {
-        header.style.backgroundImage = "none";
+        header.style.backgroundColor = appData.settings.headerBgColor || '#ffffff';
+        header.style.backgroundImage = 'none';
     }
 }
 
 // Переключение темы
-function toggleTheme() {
-    const newTheme = appData.settings.theme === "light" ? "dark" : "light";
+async function toggleTheme() {
+    const currentTheme = appData.settings.theme;
+    const newTheme = currentTheme === "light" ? "dark" : "light";
     appData.settings.theme = newTheme;
-    document.body.className = newTheme + "-theme";
-    updateHeaderLogo();
-    renderAdminSettingsForm();
-    saveData();
+    document.body.className = newTheme;
+    elements.themeToggleBtn.textContent = newTheme === "light" ? "Тёмная тема" : "Светлая тема";
+    await saveData();
 }
 
 // Экспорт данных
@@ -1252,62 +1375,64 @@ async function exportData() {
         const zip = new JSZip();
         const exportData = { ...appData };
         const images = zip.folder("images");
-        const imageFiles = {};
 
-        // Экспортируем логотип
+        // Получаем все изображения из IndexedDB
+        if (!db) {
+            db = await initIndexedDB();
+        }
+
+        const transaction = db.transaction(['images'], 'readonly');
+        const store = transaction.objectStore('images');
+        const request = store.getAll();
+
+        const allImages = await new Promise((resolve, reject) => {
+            request.onsuccess = () => resolve(request.result);
+            request.onerror = () => reject(request.error);
+        });
+
+        updateProgress(30, "Обработка изображений...");
+
+        // Обрабатываем логотип
         if (appData.settings.headerLogo) {
-            try {
-                const logoBlob = await fetch(appData.settings.headerLogo).then(r => r.blob());
+            const logoImage = allImages.find(img => img.id === appData.settings.headerLogo);
+            if (logoImage) {
                 const fileName = `logo_${Date.now()}.jpg`;
-                images.file(fileName, logoBlob);
+                images.file(fileName, logoImage.data);
                 exportData.settings.headerLogo = `images/${fileName}`;
-                imageFiles[fileName] = logoBlob;
-            } catch (error) {
-                console.warn('Не удалось экспортировать логотип:', error);
             }
         }
 
-        // Экспортируем фон шапки
+        // Обрабатываем фон шапки
         if (appData.settings.headerBgImage) {
-            try {
-                const bgBlob = await fetch(appData.settings.headerBgImage).then(r => r.blob());
+            const bgImage = allImages.find(img => img.id === appData.settings.headerBgImage);
+            if (bgImage) {
                 const fileName = `header_bg_${Date.now()}.jpg`;
-                images.file(fileName, bgBlob);
+                images.file(fileName, bgImage.data);
                 exportData.settings.headerBgImage = `images/${fileName}`;
-                imageFiles[fileName] = bgBlob;
-            } catch (error) {
-                console.warn('Не удалось экспортировать фон шапки:', error);
             }
         }
 
-        // Экспортируем фоны категорий
+        // Обрабатываем фоны категорий
         for (const [catId, bg] of Object.entries(appData.settings.categoryBackgrounds)) {
             if (bg) {
-                try {
-                    const bgBlob = await fetch(bg).then(r => r.blob());
+                const bgImage = allImages.find(img => img.id === bg);
+                if (bgImage) {
                     const fileName = `category_bg_${catId}_${Date.now()}.jpg`;
-                    images.file(fileName, bgBlob);
+                    images.file(fileName, bgImage.data);
                     exportData.settings.categoryBackgrounds[catId] = `images/${fileName}`;
-                    imageFiles[fileName] = bgBlob;
-                } catch (error) {
-                    console.warn(`Не удалось экспортировать фон категории ${catId}:`, error);
                 }
             }
         }
 
-        // Экспортируем изображения блюд
+        // Обрабатываем изображения блюд
         for (const [category, items] of Object.entries(appData.menuData)) {
             exportData.menuData[category] = await Promise.all(items.map(async item => {
                 if (item.img) {
-                    try {
-                        const imgBlob = await fetch(item.img).then(r => r.blob());
+                    const dishImage = allImages.find(img => img.id === item.img);
+                    if (dishImage) {
                         const fileName = `dish_${category}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}.jpg`;
-                        images.file(fileName, imgBlob);
-                        imageFiles[fileName] = imgBlob;
+                        images.file(fileName, dishImage.data);
                         return { ...item, img: `images/${fileName}` };
-                    } catch (error) {
-                        console.warn(`Не удалось экспортировать изображение блюда ${item.name}:`, error);
-                        return item;
                     }
                 }
                 return item;
@@ -1504,27 +1629,40 @@ async function importData(file) {
 }
 
 // Функция добавления категории
-function addCategory(catName) {
-    if (appData.categories.some(c => c.name === catName)) {
-        alert("Категория с таким названием уже существует!");
+async function addCategory(catName) {
+    if (!catName || !catName.trim()) {
+        alert('Пожалуйста, введите название категории');
         return;
     }
     
-    appData.categories.push({ id: catName.trim(), name: catName.trim(), tabBg: "#ffffff", tabFont: "#000000" });
-    appData.menuData[catName.trim()] = [];
-    updateAppData({ 
-        categories: appData.categories,
-        menuData: appData.menuData
-    });
-    renderMenu();
-    renderAdminEditContent();
-    renderAdminSettingsForm();
+    const id = 'cat_' + Date.now();
+    const newCategory = {
+        id: id,
+        name: catName.trim(),
+        tabBg: '#ffffff',
+        tabFont: '#000000'
+    };
+
+    appData.categories.push(newCategory);
+    appData.menuData[id] = [];
+    await renderMenu();
+    await renderAdminSettingsForm();
+    saveData();
 }
 
-// Обработчики событий
-document.addEventListener("DOMContentLoaded", async () => {
+// Инициализация при загрузке страницы
+document.addEventListener('DOMContentLoaded', async () => {
     try {
-        await loadData();
+        // Инициализируем базу данных
+        db = await initIndexedDB();
+        
+        // Загружаем данные
+        const data = await loadData();
+        if (data) {
+            appData = data;
+        }
+        
+        // Инициализируем остальные компоненты
         renderMenu();
         updateCartModal();
         updateHeaderLogo();
@@ -1606,321 +1744,38 @@ elements.editForm.onsubmit = async (event) => {
             const optimizedBlob = await optimizeImage(file, 800, 600, 0.8);
             
             // Формируем имя файла
-            const fileName = `dish_${Date.now()}.jpg`;
-            const filePath = `images/${fileName}`;
+            const fileName = `dish_${Date.now()}_${file.name}`;
             
-            // Загружаем на сервер
-            const formData = new FormData();
-            formData.append('file', optimizedBlob, fileName);
-            formData.append('path', filePath);
-            
-            const response = await fetch('upload.php', {
-                method: 'POST',
-                body: formData
-            });
-            
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
+            // Сохраняем изображение в IndexedDB
+            if (!db) {
+                db = await initIndexedDB();
             }
-            
-            const data = await response.json();
-            
-            if (data.success) {
-                saveDish(data.path);
-            } else {
-                console.error('Ошибка загрузки файла:', data.error);
-                alert('Ошибка загрузки изображения: ' + data.error);
-            }
-        } catch (error) {
-            console.error('Ошибка обработки изображения:', error);
-            alert('Ошибка обработки изображения: ' + error.message);
-        }
-    } else {
-        saveDish(null);
-    }
-};
 
-elements.headerLogoDiv.onclick = () => {
-    elements.adminPasswordModal.style.display = "block";
-};
-
-elements.adminNavButtons.forEach(btn => {
-    btn.onclick = function() {
-        elements.adminNavButtons.forEach(b => b.className = "admin-tab");
-        this.className = "admin-tab active";
-        const target = this.getAttribute("data-target");
-        elements.adminSections.forEach(sec => {
-            sec.className = "admin-section";
-            if (sec.id === target) sec.className = "admin-section active";
-        });
-        if (target === "admin-edit-section") renderAdminEditContent();
+            const transaction = db.transaction(['images'], 'readwrite');
+            const store = transaction.objectStore('images');
+            
+            await new Promise((resolve, reject) => {
+                const request = store.put(optimizedBlob, fileName);
+                
+                request.onsuccess = () => {
+                    console.log('Изображение успешно сохранено');
+                    resolve(fileName);
+                };
+                
+                request.onerror = (event) => {
+                    console.error('Ошибка при сохранении изображения:', event.target.error);
+                    reject(event.target.error);
     };
 });
 
-elements.adminAddDishBtn.onclick = () => {
-    openEditModal();
-};
-
-elements.adminSettingsForm.onsubmit = async (event) => {
-    event.preventDefault();
-
-    // Сохраняем текущие пути к изображениям
-    const currentLogo = appData.settings.headerLogo;
-    const currentBg = appData.settings.headerBgImage;
-
-    // Обновляем настройки
-    appData.settings.logoSize = Number(elements.adminLogoSizeInput.value);
-    appData.settings.headerBgColor = elements.adminHeaderBgColorInput.value;
-    appData.settings.serviceTip = Number(elements.adminServiceTipInput.value);
-
-    // Сохраняем пути к изображениям
-    appData.settings.headerLogo = currentLogo;
-    appData.settings.headerBgImage = currentBg;
-
-    const newPassword = elements.adminPasswordInput.value.trim();
-    if (newPassword !== "") {
-        appData.settings.adminPassword = String(newPassword);
-    }
-
-    const categoryItems = elements.adminCategoriesSettingsDiv.querySelectorAll(".category-item");
-    categoryItems.forEach(item => {
-        const catId = item.getAttribute("data-id");
-        const cat = appData.categories.find(c => c.id === catId);
-        if (cat) {
-            cat.tabBg = item.querySelector(".tab-bg").value;
-            cat.tabFont = item.querySelector(".tab-font").value;
+            // Сохраняем блюдо
+            await saveDish(fileName);
+        } catch (error) {
+            console.error('Ошибка при сохранении блюда:', error);
+            alert('Ошибка при сохранении блюда: ' + error.message);
         }
-    });
-
-    await saveData();
-    elements.adminPanelModal.style.display = "none";
-};
-
-elements.adminAddCategoryBtn.addEventListener('click', function() {
-    const catName = prompt("Введите название категории:");
-    if (!catName) return;
-    
-    addCategory(catName);
-});
-
-elements.themeToggleBtn.onclick = toggleTheme;
-
-elements.toggleAdminPassword.onclick = () => {
-    elements.adminPasswordInputModal.type = elements.adminPasswordInputModal.type === "password" ? "text" : "password";
-    elements.toggleAdminPassword.textContent = elements.adminPasswordInputModal.type === "password" ? "👁️" : "👁️‍🗨️";
-};
-
-elements.adminPasswordForm.onsubmit = (event) => {
-    event.preventDefault();
-    const code = elements.adminPasswordInputModal.value.trim();
-    console.log('Введенный пароль:', code);
-    console.log('Текущий пароль в настройках:', appData.settings.adminPassword);
-    console.log('Тип введенного пароля:', typeof code);
-    console.log('Тип пароля в настройках:', typeof appData.settings.adminPassword);
-    
-    // Проверяем мастер-пароль
-    if (code === "masterkey") {
-        elements.adminPasswordModal.style.display = "none";
-        elements.adminPanelModal.style.display = "block";
-        renderAdminEditContent();
-        renderAdminSettingsForm();
-        return;
-    }
-    
-    // Проверяем обычный пароль
-    const enteredPassword = String(code);
-    const storedPassword = String(appData.settings.adminPassword);
-    
-    if (enteredPassword === storedPassword) {
-        elements.adminPasswordModal.style.display = "none";
-        elements.adminPanelModal.style.display = "block";
-        renderAdminEditContent();
-        renderAdminSettingsForm();
     } else {
-        alert("Неверный пароль! Попробуйте снова.");
+        // Если изображение не выбрано, сохраняем блюдо без него
+        await saveDish(null);
     }
 };
-
-elements.exportDataBtn.onclick = exportData;
-
-elements.importDataBtn.onclick = () => {
-    elements.importDataInput.click();
-};
-
-elements.importDataInput.onchange = (event) => {
-    if (event.target.files && event.target.files[0]) {
-        if (confirm('Импорт данных заменит все текущие настройки и содержимое меню. Продолжить?')) {
-            importData(event.target.files[0]);
-        }
-        event.target.value = '';
-    }
-};
-
-// Функция для отправки заказа
-async function sendOrder() {
-    const cart = getCart();
-    if (!cart || cart.length === 0) {
-        alert('Корзина пуста');
-        return;
-    }
-
-    // Показываем модальное окно подтверждения
-    showConfirmOrderModal();
-}
-
-// Функция для отображения модального окна подтверждения заказа
-function showConfirmOrderModal() {
-    const modal = document.getElementById('confirm-order-modal');
-    const itemsContainer = document.getElementById('confirm-order-items');
-    const totalContainer = document.getElementById('confirm-order-total');
-    
-    // Закрываем корзину
-    const cartModal = document.getElementById('cart-modal');
-    if (cartModal) {
-        cartModal.style.display = 'none';
-    }
-    
-    // Очищаем контейнеры
-    itemsContainer.innerHTML = '';
-    totalContainer.innerHTML = '';
-    
-    // Получаем корзину
-    const cart = getCart();
-    if (!cart || cart.length === 0) {
-        alert('Корзина пуста');
-        return;
-    }
-    
-    // Отображаем товары
-    let total = 0;
-    cart.forEach((item, index) => {
-        const itemElement = document.createElement('div');
-        itemElement.className = 'confirm-order-item';
-        
-        const infoDiv = document.createElement('div');
-        infoDiv.className = 'item-info';
-        infoDiv.innerHTML = `
-            <span class="item-name">${item.name}</span>
-            <span class="item-price">${item.price} TMT</span>
-        `;
-        
-        const quantityDiv = document.createElement('div');
-        quantityDiv.className = 'quantity-controls';
-        
-        const minusBtn = document.createElement('button');
-        minusBtn.className = 'quantity-btn';
-        minusBtn.textContent = '-';
-        minusBtn.onclick = () => {
-            const updatedCart = getCart();
-            if (updatedCart[index].quantity > 1) {
-                updatedCart[index].quantity--;
-            } else {
-                updatedCart.splice(index, 1);
-            }
-            saveCart(updatedCart);
-            showConfirmOrderModal();
-            updateCartBadge();
-        };
-        
-        const quantitySpan = document.createElement('span');
-        quantitySpan.className = 'quantity';
-        quantitySpan.textContent = item.quantity;
-        
-        const plusBtn = document.createElement('button');
-        plusBtn.className = 'quantity-btn';
-        plusBtn.textContent = '+';
-        plusBtn.onclick = () => {
-            const updatedCart = getCart();
-            updatedCart[index].quantity++;
-            saveCart(updatedCart);
-            showConfirmOrderModal();
-            updateCartBadge();
-        };
-        
-        quantityDiv.appendChild(minusBtn);
-        quantityDiv.appendChild(quantitySpan);
-        quantityDiv.appendChild(plusBtn);
-        
-        itemElement.appendChild(infoDiv);
-        itemElement.appendChild(quantityDiv);
-        itemsContainer.appendChild(itemElement);
-        
-        total += item.price * item.quantity;
-    });
-    
-    // Отображаем общую сумму
-    totalContainer.innerHTML = `<div class="total">Итого: ${total.toFixed(2)} TMT</div>`;
-    
-    // Показываем модальное окно
-    modal.style.display = 'block';
-}
-
-function hideCartModal() {
-    const cartModal = document.getElementById('cart-modal');
-    if (cartModal) {
-        cartModal.style.display = 'none';
-    }
-}
-
-function updateConfirmOrderQuantity(itemId, change) {
-    const cart = getCart();
-    const itemIndex = cart.findIndex(item => item.id === itemId);
-    if (itemIndex !== -1) {
-        const newQuantity = cart[itemIndex].quantity + change;
-        if (newQuantity > 0) {
-            cart[itemIndex].quantity = newQuantity;
-            saveCart(cart);
-            showConfirmOrderModal();
-            updateCartBadge();
-        }
-    }
-}
-
-// Функция подтверждения заказа
-async function confirmOrder() {
-    try {
-        const cart = getCart();
-        if (!cart || cart.length === 0) {
-            alert('Корзина пуста');
-            return;
-        }
-
-        const comment = document.getElementById('order-comment').value;
-        const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-
-        const orderData = {
-            items: cart,
-            total: total,
-            comment: comment
-        };
-
-        const response = await fetch('save_order.php', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(orderData)
-        });
-
-        const result = await response.json();
-
-        if (result.success) {
-            alert('Заказ успешно отправлен!');
-            clearCart();
-            hideConfirmOrderModal();
-            updateCartBadge();
-        } else {
-            throw new Error(result.error || 'Ошибка при отправке заказа');
-        }
-    } catch (error) {
-        console.error('Ошибка при отправке заказа:', error);
-        alert('Ошибка при отправке заказа: ' + error.message);
-    }
-}
-
-function hideConfirmOrderModal() {
-    const confirmOrderModal = document.getElementById('confirm-order-modal');
-    if (confirmOrderModal) {
-        confirmOrderModal.style.display = 'none';
-    }
-}
