@@ -24,35 +24,45 @@ let appData = {
 };
 
 // Инициализация IndexedDB
-const dbName = 'MegabitMenuDB';
-const dbVersion = 1;
-let db;
-
-const initDB = () => {
+function initIndexedDB() {
     return new Promise((resolve, reject) => {
-        const request = indexedDB.open(dbName, dbVersion);
+        const request = indexedDB.open('MegabitMenuDB', 1);
         
-        request.onerror = (event) => {
-            console.error('Ошибка открытия базы данных:', event.target.error);
-            reject(event.target.error);
+        request.onerror = function(event) {
+            console.error('Ошибка при открытии базы данных:', event.target.error);
+            reject('Ошибка при открытии базы данных');
         };
         
-        request.onsuccess = (event) => {
-            db = event.target.result;
-            resolve(db);
-        };
-        
-        request.onupgradeneeded = (event) => {
+        request.onupgradeneeded = function(event) {
             const db = event.target.result;
-            if (!db.objectStoreNames.contains('menu')) {
-                db.createObjectStore('menu', { keyPath: 'id', autoIncrement: true });
+            
+            // Создаем хранилище для данных меню
+            if (!db.objectStoreNames.contains('menuData')) {
+                db.createObjectStore('menuData', { keyPath: 'id' });
             }
+            
+            // Создаем хранилище для изображений
+            if (!db.objectStoreNames.contains('images')) {
+                db.createObjectStore('images', { keyPath: 'id' });
+            }
+            
+            // Создаем хранилище для заказов
             if (!db.objectStoreNames.contains('orders')) {
                 db.createObjectStore('orders', { keyPath: 'id', autoIncrement: true });
             }
+            
+            // Создаем хранилище для настроек
+            if (!db.objectStoreNames.contains('settings')) {
+                db.createObjectStore('settings', { keyPath: 'id' });
+            }
+        };
+        
+        request.onsuccess = function(event) {
+            const db = event.target.result;
+            resolve(db);
         };
     });
-};
+}
 
 // Функции для работы с меню
 const saveMenuData = async (data) => {
@@ -158,7 +168,7 @@ async function saveData() {
     try {
         // Сначала сохраняем в IndexedDB
         if (!db) {
-            db = await initDB();
+            db = await initIndexedDB();
         }
 
         await new Promise((resolve, reject) => {
@@ -212,79 +222,53 @@ async function saveData() {
 
 // Функция загрузки данных
 async function loadData() {
-    return new Promise((resolve, reject) => {
-        const xhr = new XMLHttpRequest();
-        xhr.open('GET', 'data.json', true);
-        xhr.onload = function() {
-            if (xhr.status === 200) {
-                try {
-                    const data = JSON.parse(xhr.responseText);
-                    
-                    // Проверяем структуру данных
-                    if (!data || typeof data !== 'object') {
-                        throw new Error('Invalid data structure');
-                    }
-                    
-                    // Проверяем обязательные поля
-                    if (!data.settings || !data.categories || !Array.isArray(data.categories)) {
-                        throw new Error('Missing required fields');
-                    }
-                    
-                    // Преобразуем числовые значения в строки
-                    function convertNumericValues(obj) {
-                        if (typeof obj !== 'object' || obj === null) {
-                            return obj;
-                        }
-                        
-                        if (Array.isArray(obj)) {
-                            return obj.map(item => convertNumericValues(item));
-                        }
-                        
-                        for (const key in obj) {
-                            if (obj.hasOwnProperty(key)) {
-                                if (typeof obj[key] === 'number' && (key === 'id' || key === 'name')) {
-                                    obj[key] = String(obj[key]);
-                                } else if (typeof obj[key] === 'object') {
-                                    obj[key] = convertNumericValues(obj[key]);
-                                }
+    try {
+        // Сначала пробуем загрузить из IndexedDB
+        if (!db) {
+            db = await initIndexedDB();
+        }
+        
+        const transaction = db.transaction(['menuData'], 'readonly');
+        const store = transaction.objectStore('menuData');
+        const request = store.get('current');
+        
+        return new Promise((resolve, reject) => {
+            request.onsuccess = function(event) {
+                const data = event.target.result;
+                if (data) {
+                    resolve(data.data);
+                } else {
+                    // Если в IndexedDB нет данных, загружаем из data.json
+                    fetch('data.json')
+                        .then(response => {
+                            if (!response.ok) {
+                                throw new Error(`HTTP error! status: ${response.status}`);
                             }
-                        }
-                        return obj;
-                    }
-                    
-                    // Применяем преобразование
-                    const convertedData = convertNumericValues(data);
-                    
-                    // Очищаем IndexedDB перед сохранением новых данных
-                    initDB().then(db => {
-                        const transaction = db.transaction(['appData'], 'readwrite');
-                        const store = transaction.objectStore('appData');
-                        
-                        // Удаляем старые данные
-                        store.clear();
-                        
-                        // Сохраняем новые данные
-                        store.put(convertedData, 'menuData');
-                        
-                        // Обновляем данные в памяти
-                        updateAppData(convertedData);
-                        
-                        resolve(convertedData);
-                    }).catch(error => {
-                        reject(error);
-                    });
-                } catch (error) {
-                    reject(error);
+                            return response.json();
+                        })
+                        .then(data => {
+                            // Сохраняем данные в IndexedDB
+                            const saveTransaction = db.transaction(['menuData'], 'readwrite');
+                            const saveStore = saveTransaction.objectStore('menuData');
+                            saveStore.put({ id: 'current', data: data });
+                            resolve(data);
+                        })
+                        .catch(error => {
+                            console.error('Ошибка при загрузке данных:', error);
+                            reject(error);
+                        });
                 }
-            } else {
-                reject(new Error(`HTTP error! status: ${xhr.status}`));
-            }
-        };
-        xhr.onerror = function() {
-            reject(new Error('Network error'));
-        };
-        xhr.send();
-    });
+            };
+            
+            request.onerror = function(event) {
+                console.error('Ошибка при загрузке данных из IndexedDB:', event.target.error);
+                reject(event.target.error);
+            };
+        });
+    } catch (error) {
+        console.error('Ошибка при инициализации базы данных:', error);
+        throw error;
+    }
 }
 
 // Функция для обновления данных с автоматическим сохранением
@@ -1942,6 +1926,47 @@ function hideConfirmOrderModal() {
     if (confirmOrderModal) {
         confirmOrderModal.style.display = 'none';
     }
+}
+
+// Функция для сохранения изображения в IndexedDB
+async function saveImage(imageFile) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const imageData = e.target.result;
+            const dbRequest = indexedDB.open('MegabitMenuDB', 1);
+            
+            dbRequest.onerror = function(event) {
+                reject('Ошибка при открытии базы данных');
+            };
+            
+            dbRequest.onsuccess = function(event) {
+                const db = event.target.result;
+                const transaction = db.transaction(['images'], 'readwrite');
+                const store = transaction.objectStore('images');
+                
+                const request = store.put({
+                    id: imageFile.name,
+                    data: imageData,
+                    timestamp: Date.now()
+                });
+                
+                request.onsuccess = function() {
+                    resolve(imageData);
+                };
+                
+                request.onerror = function() {
+                    reject('Ошибка при сохранении изображения');
+                };
+            };
+        };
+        
+        reader.onerror = function() {
+            reject('Ошибка при чтении файла');
+        };
+        
+        reader.readAsDataURL(imageFile);
+    });
 }
 
 // Экспорт функций для использования в других модулях
