@@ -127,11 +127,56 @@
         <div class="container py-4">
             <h1 class="mb-4">Операторская панель</h1>
             
-            <div class="filter-buttons">
-                <button class="btn btn-outline-warning" data-status="new">Новые</button>
-                <button class="btn btn-outline-info" data-status="in_progress">В работе</button>
-                <button class="btn btn-outline-secondary" data-status="completed">Завершённые</button>
-                <button class="btn btn-outline-primary" data-status="all">Все заказы</button>
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div class="filter-buttons">
+                    <button class="btn btn-outline-warning" data-status="new">Новые</button>
+                    <button class="btn btn-outline-info" data-status="in_progress">В работе</button>
+                    <button class="btn btn-outline-secondary" data-status="completed">Завершённые</button>
+                    <button class="btn btn-outline-primary" data-status="all">Все заказы</button>
+                </div>
+                <div class="date-filter">
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="todayOnly" checked>
+                        <label class="form-check-label" for="todayOnly">Только сегодня</label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="orders-summary mb-4">
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="card bg-warning text-dark">
+                            <div class="card-body">
+                                <h5 class="card-title">Новые</h5>
+                                <p class="card-text" id="new-orders-count">0</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-info text-white">
+                            <div class="card-body">
+                                <h5 class="card-title">В работе</h5>
+                                <p class="card-text" id="in-progress-orders-count">0</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-secondary text-white">
+                            <div class="card-body">
+                                <h5 class="card-title">Завершённые</h5>
+                                <p class="card-text" id="completed-orders-count">0</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-primary text-white">
+                            <div class="card-body">
+                                <h5 class="card-title">Всего</h5>
+                                <p class="card-text" id="total-orders-count">0</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <div id="orders-container" class="row"></div>
@@ -150,6 +195,7 @@
         let previousOrderIds = new Set();
         let activeFilter = 'all';
         let db = null;
+        let showTodayOnly = true;
 
         // Инициализация IndexedDB
         async function initIndexedDB() {
@@ -242,6 +288,28 @@
             });
         }
 
+        function updateOrdersCount() {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            let filteredOrders = orders;
+            if (showTodayOnly) {
+                filteredOrders = orders.filter(order => {
+                    const orderDate = new Date(order.timestamp);
+                    orderDate.setHours(0, 0, 0, 0);
+                    return orderDate.getTime() === today.getTime();
+                });
+            }
+
+            document.getElementById('new-orders-count').textContent = 
+                filteredOrders.filter(order => order.status === 'new').length;
+            document.getElementById('in-progress-orders-count').textContent = 
+                filteredOrders.filter(order => order.status === 'in_progress').length;
+            document.getElementById('completed-orders-count').textContent = 
+                filteredOrders.filter(order => order.status === 'completed').length;
+            document.getElementById('total-orders-count').textContent = filteredOrders.length;
+        }
+
         function displayOrders() {
             const ordersContainer = document.getElementById('orders-container');
             if (!ordersContainer) return;
@@ -255,8 +323,22 @@
                 filteredOrders = orders.filter(order => order.status === activeFilter);
             }
 
+            // Фильтруем заказы по дате, если включен фильтр "Только сегодня"
+            if (showTodayOnly) {
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                filteredOrders = filteredOrders.filter(order => {
+                    const orderDate = new Date(order.timestamp);
+                    orderDate.setHours(0, 0, 0, 0);
+                    return orderDate.getTime() === today.getTime();
+                });
+            }
+
             // Сортируем заказы по времени (новые сверху)
             filteredOrders.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+            // Обновляем счетчики
+            updateOrdersCount();
 
             // Отображаем заказы
             filteredOrders.forEach(order => {
@@ -353,6 +435,12 @@
                 updateActiveFilterButton();
                 displayOrders();
             });
+        });
+
+        // Добавляем обработчик для переключателя даты
+        document.getElementById('todayOnly').addEventListener('change', function() {
+            showTodayOnly = this.checked;
+            displayOrders();
         });
 
         // Загрузка заказов при загрузке страницы
