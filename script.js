@@ -99,7 +99,7 @@ function initIndexedDB() {
         };
         
         request.onsuccess = function(event) {
-            db = event.target.result; // Присваиваем глобальной переменной db
+            const db = event.target.result;
             resolve(db);
         };
     });
@@ -1573,7 +1573,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         db = await initIndexedDB();
         
         // Загружаем данные
-        await loadData();
+        const data = await loadData();
+        if (data) {
+            appData = data;
+        }
         
         // Инициализируем остальные компоненты
         renderMenu();
