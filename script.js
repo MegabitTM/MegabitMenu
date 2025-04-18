@@ -5,32 +5,29 @@ let db = null;
 async function saveImage(imageFile) {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
-        reader.onload = function(e) {
+        reader.onload = async function(e) {
             const imageData = e.target.result;
-            const dbRequest = indexedDB.open('MegabitMenuDB', 1);
             
-            dbRequest.onerror = function(event) {
-                reject('Ошибка при открытии базы данных');
+            // Инициализируем базу данных, если она еще не инициализирована
+            if (!db) {
+                db = await initIndexedDB();
+            }
+            
+            const transaction = db.transaction(['images'], 'readwrite');
+            const store = transaction.objectStore('images');
+            
+            const request = store.put({
+                id: imageFile.name,
+                data: imageData,
+                timestamp: Date.now()
+            });
+            
+            request.onsuccess = function() {
+                resolve(imageData);
             };
             
-            dbRequest.onsuccess = function(event) {
-                const db = event.target.result;
-                const transaction = db.transaction(['images'], 'readwrite');
-                const store = transaction.objectStore('images');
-                
-                const request = store.put({
-                    id: imageFile.name,
-                    data: imageData,
-                    timestamp: Date.now()
-                });
-                
-                request.onsuccess = function() {
-                    resolve(imageData);
-                };
-                
-                request.onerror = function() {
-                    reject('Ошибка при сохранении изображения');
-                };
+            request.onerror = function() {
+                reject('Ошибка при сохранении изображения');
             };
         };
         
