@@ -68,7 +68,7 @@ let appData = {
 };
 
 // Инициализация IndexedDB
-async function initIndexedDB() {
+function initIndexedDB() {
     return new Promise((resolve, reject) => {
         const request = indexedDB.open('MegabitMenuDB', 1);
         
