@@ -79,7 +79,9 @@ function initIndexedDB() {
             
             // Создаем хранилище для данных меню
             if (!db.objectStoreNames.contains('menuData')) {
-                db.createObjectStore('menuData', { keyPath: 'id' });
+                const menuStore = db.createObjectStore('menuData', { keyPath: 'id' });
+                // Создаем индекс для быстрого поиска
+                menuStore.createIndex('current', 'id', { unique: true });
             }
             
             // Создаем хранилище для изображений
@@ -270,11 +272,11 @@ async function loadData() {
             db = await initIndexedDB();
         }
         
-        const transaction = db.transaction(['menuData'], 'readonly');
-        const store = transaction.objectStore('menuData');
-        const request = store.get('current');
-        
         return new Promise((resolve, reject) => {
+            const transaction = db.transaction(['menuData'], 'readonly');
+            const store = transaction.objectStore('menuData');
+            const request = store.get('current');
+            
             request.onsuccess = function(event) {
                 const data = event.target.result;
                 if (data) {
