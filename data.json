@@ -1,41 +1,41 @@
 {
     "cart": [],
     "settings": {
-        "headerLogo": "images\/dish_1744960709.jpg",
+        "headerLogo": "images/dish_1744960709.jpg",
         "logoSize": 50,
         "headerBgColor": "#ffffff",
-        "headerBgImage": "images\/dish_1744960731.jpg",
+        "headerBgImage": "images/dish_1744960731.jpg",
         "serviceTip": 10,
         "categoryBackgrounds": {
-            "main-dishes": "images\/category_bg_main-dishes_1741264701122.jpg",
-            "desserts": "images\/category_bg_desserts_1741264701163.jpg",
-            "appetizers": "images\/category_bg_appetizers_1741264701216.jpg",
-            "чай-кофе": "images\/category_bg_чай-кофе_1741266150304.jpg",
-            "мангал": "images\/category_bg_мангал_1741266059052.jpg",
-            "напитки": "images\/category_bg_напитки_1741319277962.jpg",
-            "бар": "images\/category_bg_бар_1741266114459.jpg",
-            "салаты": "images\/category_bg_салаты_1741620889051.jpg"
+            "main-dishes": "images/category_bg_main-dishes_1741264701122.jpg",
+            "desserts": "images/category_bg_desserts_1741264701163.jpg",
+            "appetizers": "images/category_bg_appetizers_1741264701216.jpg",
+            "чай-кофе": "images/category_bg_чай-кофе_1741266150304.jpg",
+            "мангал": "images/category_bg_мангал_1741266059052.jpg",
+            "напитки": "images/category_bg_напитки_1741319277962.jpg",
+            "бар": "images/category_bg_бар_1741266114459.jpg",
+            "салаты": "images/category_bg_салаты_1741620889051.jpg"
         },
         "theme": "dark",
-        "adminPassword": 1,
-        "logoPath": "MegabitMenuData\/images\/logo_1741607193516.jpg",
-        "headerBgPath": "MegabitMenuData\/images\/header_bg_1741622225866.jpg",
+        "adminPassword": "1",
+        "logoPath": "MegabitMenuData/images/logo_1741607193516.jpg",
+        "headerBgPath": "MegabitMenuData/images/header_bg_1741622225866.jpg",
         "categoryBackgroundPaths": {
-            "main-dishes": "MegabitMenuData\/images\/category_bg_main-dishes_1741264701122.jpg",
-            "desserts": "MegabitMenuData\/images\/category_bg_desserts_1741264701163.jpg",
-            "appetizers": "MegabitMenuData\/images\/category_bg_appetizers_1741264701216.jpg",
-            "чай-кофе": "MegabitMenuData\/images\/category_bg_чай-кофе_1741266150304.jpg",
-            "мангал": "MegabitMenuData\/images\/category_bg_мангал_1741266059052.jpg",
-            "напитки": "MegabitMenuData\/images\/category_bg_напитки_1741319277962.jpg",
-            "бар": "MegabitMenuData\/images\/category_bg_бар_1741266114459.jpg",
-            "салаты": "MegabitMenuData\/images\/category_bg_салаты_1741620889051.jpg",
-            "завтраки": "MegabitMenuData\/images\/category_bg_завтраки_1741630809052.jpg"
+            "main-dishes": "MegabitMenuData/images/category_bg_main-dishes_1741264701122.jpg",
+            "desserts": "MegabitMenuData/images/category_bg_desserts_1741264701163.jpg",
+            "appetizers": "MegabitMenuData/images/category_bg_appetizers_1741264701216.jpg",
+            "чай-кофе": "MegabitMenuData/images/category_bg_чай-кофе_1741266150304.jpg",
+            "мангал": "MegabitMenuData/images/category_bg_мангал_1741266059052.jpg",
+            "напитки": "MegabitMenuData/images/category_bg_напитки_1741319277962.jpg",
+            "бар": "MegabitMenuData/images/category_bg_бар_1741266114459.jpg",
+            "салаты": "MegabitMenuData/images/category_bg_салаты_1741620889051.jpg",
+            "завтраки": "MegabitMenuData/images/category_bg_завтраки_1741630809052.jpg"
         }
     },
     "categories": [
         {
             "id": "завтраки",
-            "name": 12,
+            "name": "Завтраки",
             "tabBg": "#ffffff",
             "tabFont": "#000000"
         },
@@ -104,226 +104,186 @@
             "name": "Холодные напитки",
             "tabBg": "#ffffff",
             "tabFont": "#000000"
-        },
-        {
-            "id": 1234,
-            "name": 1234,
-            "tabBg": "#ffffff",
-            "tabFont": "#000000"
-        },
-        {
-            "id": 321,
-            "name": 321,
-            "tabBg": "#ffffff",
-            "tabFont": "#000000"
         }
     ],
     "menuData": {
-        "321": [
-            {
-                "name": 1,
-                "description": " ",
-                "price": 1,
-                "stopList": false,
-                "img": "images\/dish_1744960979.jpg",
-                "imgPath": "images\/dish_1744960979.jpg"
-            }
-        ],
-        "1234": [
-            {
-                "name": 12,
-                "description": " ",
-                "price": 1,
-                "stopList": false,
-                "img": "images\/dish_1744955778.jpg",
-                "imgPath": "images\/dish_1744955778.jpg"
-            }
-        ],
         "завтраки": [
             {
                 "name": "Каша рисовая",
                 "description": "С сухофруктами",
                 "price": 10,
                 "stopList": false,
-                "img": "images\/dish_1744960460.jpg",
-                "imgPath": "images\/dish_1744960460.jpg"
+                "img": "images/dish_1744960460.jpg",
+                "imgPath": "images/dish_1744960460.jpg"
             },
             {
-                "name": "Каша овсяная ",
-                "description": "С сухофруктами ",
+                "name": "Каша овсяная",
+                "description": "С сухофруктами",
                 "price": 35,
-                "img": "images\/dish_1741421305143.jpg",
-                "imgPath": "images\/dish_1741421305143.jpg",
+                "img": "images/dish_1741421305143.jpg",
+                "imgPath": "images/dish_1741421305143.jpg",
                 "stopList": false
             },
             {
                 "name": "Каша манная",
                 "description": "Крупа манная",
                 "price": 30,
-                "img": "images\/dish_1741421426513.jpg",
-                "imgPath": "images\/dish_1741421426513.jpg",
+                "img": "images/dish_1741421426513.jpg",
+                "imgPath": "images/dish_1741421426513.jpg",
                 "stopList": false
             },
             {
                 "name": "Сандвич с ветчиной",
                 "description": "Сыр, ветчина, тосты, лист салата",
                 "price": 30,
-                "img": "images\/dish_1741421510874.jpg",
-                "imgPath": "images\/dish_1741421510874.jpg",
+                "img": "images/dish_1741421510874.jpg",
+                "imgPath": "images/dish_1741421510874.jpg",
                 "stopList": false
             },
             {
                 "name": "Сэндвич Арома",
                 "description": "Тосты, сыр, куриная грудка, лист салата",
                 "price": 30,
-                "img": "images\/dish_1741421607568.jpg",
-                "imgPath": "images\/dish_1741421607568.jpg",
+                "img": "images/dish_1741421607568.jpg",
+                "imgPath": "images/dish_1741421607568.jpg",
                 "stopList": false
             },
             {
-                "name": "Яичница ",
+                "name": "Яичница",
                 "description": "С кавурмой",
                 "price": 35,
-                "img": "images\/dish_1741421660350.jpg",
-                "imgPath": "images\/dish_1741421660350.jpg",
+                "img": "images/dish_1741421660350.jpg",
+                "imgPath": "images/dish_1741421660350.jpg",
                 "stopList": false
             },
             {
                 "name": "Блинчики",
                 "description": "С фаршем, с творогом, с клубникой, с малиной",
                 "price": 20,
-                "img": "images\/dish_1741421722947.jpg",
-                "imgPath": "images\/dish_1741421722947.jpg",
+                "img": "images/dish_1741421722947.jpg",
+                "imgPath": "images/dish_1741421722947.jpg",
                 "stopList": false
             },
             {
                 "name": "Завтрак по турецки",
-                "description": "Оливки, маслины, багет, свежие овощи ",
+                "description": "Оливки, маслины, багет, свежие овощи",
                 "price": 90,
-                "img": "images\/dish_1741421797085.jpg",
-                "imgPath": "images\/dish_1741421797085.jpg",
+                "img": "images/dish_1741421797085.jpg",
+                "imgPath": "images/dish_1741421797085.jpg",
                 "stopList": false
             },
             {
                 "name": "Шакшука (Менемен)",
-                "description": "Яйца, помидоры ",
+                "description": "Яйца, помидоры",
                 "price": 45,
-                "img": "images\/dish_1741421844844.jpg",
-                "imgPath": "images\/dish_1741421844844.jpg",
+                "img": "images/dish_1741421844844.jpg",
+                "imgPath": "images/dish_1741421844844.jpg",
                 "stopList": false
             },
             {
                 "name": "Омлет",
                 "description": "Яйца, молоко",
                 "price": 40,
-                "img": "images\/dish_1741421881523.jpg",
-                "imgPath": "images\/dish_1741421881523.jpg",
+                "img": "images/dish_1741421881523.jpg",
+                "imgPath": "images/dish_1741421881523.jpg",
                 "stopList": false
             },
             {
-                "name": "Глазунья ",
+                "name": "Глазунья",
                 "description": "С сужуком",
                 "price": 38,
-                "img": "images\/dish_1741421947118.jpg",
-                "imgPath": "images\/dish_1741421947118.jpg",
+                "img": "images/dish_1741421947118.jpg",
+                "imgPath": "images/dish_1741421947118.jpg",
                 "stopList": false
-            },
-            {
-                "name": 1,
-                "description": " ",
-                "price": 1,
-                "stopList": false,
-                "img": "images\/dish_1744955699.jpg",
-                "imgPath": "images\/dish_1744955699.jpg"
             }
         ],
         "основные-блюда": [
             {
-                "name": "Шницель ",
+                "name": "Шницель",
                 "description": "С гарниром",
                 "price": 48,
-                "img": "images\/dish_1741634276760.jpg",
-                "imgPath": "images\/dish_1741634276760.jpg",
+                "img": "images/dish_1741634276760.jpg",
+                "imgPath": "images/dish_1741634276760.jpg",
                 "stopList": false
             },
             {
                 "name": "Соте говяжее",
-                "description": "Говядина ",
+                "description": "Говядина",
                 "price": 45,
-                "img": "images\/dish_1741641387442.jpg",
-                "imgPath": "images\/dish_1741641387442.jpg",
+                "img": "images/dish_1741641387442.jpg",
+                "imgPath": "images/dish_1741641387442.jpg",
                 "stopList": false
             },
             {
                 "name": "Какмач",
-                "description": "На сливочном масле ",
+                "description": "На сливочном масле",
                 "price": 45,
-                "img": "images\/dish_1741641405190.jpg",
-                "imgPath": "images\/dish_1741641405190.jpg",
+                "img": "images/dish_1741641405190.jpg",
+                "imgPath": "images/dish_1741641405190.jpg",
                 "stopList": false
             },
             {
-                "name": "Куриная грудка ",
-                "description": "В сливочном соусе ",
+                "name": "Куриная грудка",
+                "description": "В сливочном соусе",
                 "price": 65,
-                "img": "images\/dish_1741640534449.jpg",
-                "imgPath": "images\/dish_1741640534449.jpg",
+                "img": "images/dish_1741640534449.jpg",
+                "imgPath": "images/dish_1741640534449.jpg",
                 "stopList": false
             },
             {
-                "name": "Соте куриное ",
-                "description": "С гарниром ",
+                "name": "Соте куриное",
+                "description": "С гарниром",
                 "price": 40,
-                "img": "images\/dish_1741641225376.jpg",
-                "imgPath": "images\/dish_1741641225376.jpg",
+                "img": "images/dish_1741641225376.jpg",
+                "imgPath": "images/dish_1741641225376.jpg",
                 "stopList": false
             },
             {
-                "name": "Грудка на гриле ",
-                "description": "С овощами ",
+                "name": "Грудка на гриле",
+                "description": "С овощами",
                 "price": 75,
-                "img": "images\/dish_1741639605337.jpg",
-                "imgPath": "images\/dish_1741639605337.jpg",
+                "img": "images/dish_1741639605337.jpg",
+                "imgPath": "images/dish_1741639605337.jpg",
                 "stopList": false
             },
             {
                 "name": "Пюре",
                 "description": "С котлетами",
                 "price": 35,
-                "img": "images\/dish_1741422845026.jpg",
-                "imgPath": "images\/dish_1741422845026.jpg",
+                "img": "images/dish_1741422845026.jpg",
+                "imgPath": "images/dish_1741422845026.jpg",
                 "stopList": false
             },
             {
                 "name": "Какмач",
                 "description": "Батырма",
                 "price": 60,
-                "img": "images\/dish_1741641584392.jpg",
-                "imgPath": "images\/dish_1741641584392.jpg",
+                "img": "images/dish_1741641584392.jpg",
+                "imgPath": "images/dish_1741641584392.jpg",
                 "stopList": false
             },
             {
-                "name": "Паста Болоньезе ",
+                "name": "Паста Болоньезе",
                 "description": "Мясной соус",
                 "price": 55,
-                "img": "images\/dish_1741622030621.jpg",
-                "imgPath": "images\/dish_1741622030621.jpg",
+                "img": "images/dish_1741622030621.jpg",
+                "imgPath": "images/dish_1741622030621.jpg",
                 "stopList": false
             },
             {
                 "name": "Картошка жаренная",
-                "description": "По домашнему ",
+                "description": "По домашнему",
                 "price": 45,
-                "img": "images\/dish_1741423064350.jpg",
-                "imgPath": "images\/dish_1741423064350.jpg",
+                "img": "images/dish_1741423064350.jpg",
+                "imgPath": "images/dish_1741423064350.jpg",
                 "stopList": false
             },
             {
-                "name": "Жаренные креветки ",
+                "name": "Жаренные креветки",
                 "description": "В чесночном соусе",
                 "price": 110,
-                "img": "images\/dish_1741423144477.jpg",
-                "imgPath": "images\/dish_1741423144477.jpg",
+                "img": "images/dish_1741423144477.jpg",
+                "imgPath": "images/dish_1741423144477.jpg",
                 "stopList": false
             },
             {
