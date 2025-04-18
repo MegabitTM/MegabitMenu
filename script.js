@@ -232,8 +232,8 @@ async function saveData() {
         }
 
         await new Promise((resolve, reject) => {
-            const transaction = db.transaction([STORE_NAME], 'readwrite');
-            const store = transaction.objectStore(STORE_NAME);
+            const transaction = db.transaction(['menuData'], 'readwrite');
+            const store = transaction.objectStore('menuData');
             
             const request = store.put(appData, 'data');
             
