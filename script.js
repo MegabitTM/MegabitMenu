@@ -1,6 +1,61 @@
 // Глобальная переменная для хранения экземпляра базы данных
 let db = null;
 
+// Функция для расчета общей суммы заказа
+function calculateTotal() {
+    const cart = getCart();
+    let total = 0;
+    
+    cart.forEach(item => {
+        total += item.price * item.quantity;
+    });
+    
+    // Добавляем процент обслуживания, если он установлен
+    const serviceTip = appData.settings.serviceTip || 0;
+    if (serviceTip > 0) {
+        total += total * (serviceTip / 100);
+    }
+    
+    return Math.round(total);
+}
+
+// Функция для отправки заказа
+async function sendOrder() {
+    const cart = getCart();
+    if (cart.length === 0) {
+        alert('Корзина пуста');
+        return;
+    }
+
+    // Создаем объект заказа
+    const order = {
+        items: cart,
+        total: calculateTotal(),
+        timestamp: new Date().toISOString(),
+        status: 'new',
+        comment: document.getElementById('order-comment')?.value || ''
+    };
+
+    try {
+        // Сохраняем заказ в IndexedDB
+        const transaction = db.transaction(['orders'], 'readwrite');
+        const store = transaction.objectStore('orders');
+        await store.add(order);
+
+        // Очищаем корзину
+        clearCart();
+        
+        // Закрываем модальное окно корзины
+        elements.cartModal.style.display = 'none';
+        
+        // Показываем уведомление об успешном заказе
+        alert('Заказ успешно отправлен!');
+    } catch (error) {
+        console.error('Ошибка при сохранении заказа:', error);
+        alert('Произошла ошибка при отправке заказа. Пожалуйста, попробуйте еще раз.');
+    }
+}
+
 // Инициализация элементов DOM
 const elements = {
     menuContainer: document.getElementById('menu-container'),
@@ -1593,61 +1648,6 @@ async function addCategory(catName) {
     await renderMenu();
     await renderAdminSettingsForm();
     saveData();
-}
-
-// Функция для расчета общей суммы заказа
-function calculateTotal() {
-    const cart = getCart();
-    let total = 0;
-    
-    cart.forEach(item => {
-        total += item.price * item.quantity;
-    });
-    
-    // Добавляем процент обслуживания, если он установлен
-    const serviceTip = appData.settings.serviceTip || 0;
-    if (serviceTip > 0) {
-        total += total * (serviceTip / 100);
-    }
-    
-    return Math.round(total);
-}
-
-// Функция для отправки заказа
-async function sendOrder() {
-    const cart = getCart();
-    if (cart.length === 0) {
-        alert('Корзина пуста');
-        return;
-    }
-
-    // Создаем объект заказа
-    const order = {
-        items: cart,
-        total: calculateTotal(),
-        timestamp: new Date().toISOString(),
-        status: 'new',
-        comment: document.getElementById('order-comment')?.value || ''
-    };
-
-    try {
-        // Сохраняем заказ в IndexedDB
-        const transaction = db.transaction(['orders'], 'readwrite');
-        const store = transaction.objectStore('orders');
-        await store.add(order);
-
-        // Очищаем корзину
-        clearCart();
-        
-        // Закрываем модальное окно корзины
-        elements.cartModal.style.display = 'none';
-        
-        // Показываем уведомление об успешном заказе
-        alert('Заказ успешно отправлен!');
-    } catch (error) {
-        console.error('Ошибка при сохранении заказа:', error);
-        alert('Произошла ошибка при отправке заказа. Пожалуйста, попробуйте еще раз.');
-    }
 }
 
 // Инициализация при загрузке страницы
