@@ -1,3 +1,44 @@
+// Функция для сохранения изображения в IndexedDB
+async function saveImage(imageFile) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const imageData = e.target.result;
+            const dbRequest = indexedDB.open('MegabitMenuDB', 1);
+            
+            dbRequest.onerror = function(event) {
+                reject('Ошибка при открытии базы данных');
+            };
+            
+            dbRequest.onsuccess = function(event) {
+                const db = event.target.result;
+                const transaction = db.transaction(['images'], 'readwrite');
+                const store = transaction.objectStore('images');
+                
+                const request = store.put({
+                    id: imageFile.name,
+                    data: imageData,
+                    timestamp: Date.now()
+                });
+                
+                request.onsuccess = function() {
+                    resolve(imageData);
+                };
+                
+                request.onerror = function() {
+                    reject('Ошибка при сохранении изображения');
+                };
+            };
+        };
+        
+        reader.onerror = function() {
+            reject('Ошибка при чтении файла');
+        };
+        
+        reader.readAsDataURL(imageFile);
+    });
+}
+
 // Базовые данные приложения
 let appData = {
     cart: [],
@@ -66,15 +107,15 @@ function initIndexedDB() {
 
 // Функции для работы с меню
 const saveMenuData = async (data) => {
-    const transaction = db.transaction(['menu'], 'readwrite');
-    const store = transaction.objectStore('menu');
+    const transaction = db.transaction(['menuData'], 'readwrite');
+    const store = transaction.objectStore('menuData');
     await store.clear();
     await store.add(data);
 };
 
 const getMenuData = async () => {
-    const transaction = db.transaction(['menu'], 'readonly');
-    const store = transaction.objectStore('menu');
+    const transaction = db.transaction(['menuData'], 'readonly');
+    const store = transaction.objectStore('menuData');
     const request = store.getAll();
     
     return new Promise((resolve, reject) => {
@@ -84,10 +125,11 @@ const getMenuData = async () => {
 };
 
 // Функции для работы с заказами
-const saveOrder = async (order) => {
+const saveOrders = async (orders) => {
     const transaction = db.transaction(['orders'], 'readwrite');
     const store = transaction.objectStore('orders');
-    return store.add(order);
+    await store.clear();
+    await store.add(orders);
 };
 
 const getOrders = async () => {
@@ -96,7 +138,7 @@ const getOrders = async () => {
     const request = store.getAll();
     
     return new Promise((resolve, reject) => {
-        request.onsuccess = () => resolve(request.result);
+        request.onsuccess = () => resolve(request.result[0]);
         request.onerror = () => reject(request.error);
     });
 };
@@ -1928,52 +1970,11 @@ function hideConfirmOrderModal() {
     }
 }
 
-// Функция для сохранения изображения в IndexedDB
-async function saveImage(imageFile) {
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            const imageData = e.target.result;
-            const dbRequest = indexedDB.open('MegabitMenuDB', 1);
-            
-            dbRequest.onerror = function(event) {
-                reject('Ошибка при открытии базы данных');
-            };
-            
-            dbRequest.onsuccess = function(event) {
-                const db = event.target.result;
-                const transaction = db.transaction(['images'], 'readwrite');
-                const store = transaction.objectStore('images');
-                
-                const request = store.put({
-                    id: imageFile.name,
-                    data: imageData,
-                    timestamp: Date.now()
-                });
-                
-                request.onsuccess = function() {
-                    resolve(imageData);
-                };
-                
-                request.onerror = function() {
-                    reject('Ошибка при сохранении изображения');
-                };
-            };
-        };
-        
-        reader.onerror = function() {
-            reject('Ошибка при чтении файла');
-        };
-        
-        reader.readAsDataURL(imageFile);
-    });
-}
-
 // Экспорт функций для использования в других модулях
 window.MegabitMenu = {
     saveMenuData,
     getMenuData,
-    saveOrder,
+    saveOrders,
     getOrders,
     saveImage
 };
