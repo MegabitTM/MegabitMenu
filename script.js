@@ -1566,10 +1566,16 @@ function addCategory(catName) {
     renderAdminSettingsForm();
 }
 
-// Обработчики событий
-document.addEventListener("DOMContentLoaded", async () => {
+// Инициализация при загрузке страницы
+document.addEventListener('DOMContentLoaded', async () => {
     try {
+        // Инициализируем базу данных
+        db = await initIndexedDB();
+        
+        // Загружаем данные
         await loadData();
+        
+        // Инициализируем остальные компоненты
         renderMenu();
         updateCartModal();
         updateHeaderLogo();
