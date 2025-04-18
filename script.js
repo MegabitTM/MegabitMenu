@@ -119,27 +119,8 @@ async function initIndexedDB() {
         });
     } catch (error) {
         console.error('Ошибка при инициализации базы данных:', error);
-            // Создаем хранилище для изображений
-            if (!db.objectStoreNames.contains('images')) {
-                db.createObjectStore('images', { keyPath: 'id' });
-            }
-            
-            // Создаем хранилище для заказов
-            if (!db.objectStoreNames.contains('orders')) {
-                db.createObjectStore('orders', { keyPath: 'id', autoIncrement: true });
-            }
-            
-            // Создаем хранилище для настроек
-            if (!db.objectStoreNames.contains('settings')) {
-                db.createObjectStore('settings', { keyPath: 'id' });
-            }
-        };
-        
-        request.onsuccess = function(event) {
-            const db = event.target.result;
-            resolve(db);
-        };
-    });
+        throw error;
+    }
 }
 
 // Функции для работы с меню
